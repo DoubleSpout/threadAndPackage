@@ -1,0 +1,1974 @@
+<!DOCTYPE html>
+<!--[if IE 6]>
+<html id="ie6" lang="en">
+<![endif]-->
+<!--[if IE 7]>
+<html id="ie7" lang="en">
+<![endif]-->
+<!--[if IE 8]>
+<html id="ie8" lang="en">
+<![endif]-->
+<!--[if !(IE 6) | !(IE 7) | !(IE 8)  ]><!-->
+<html lang="en">
+<!--<![endif]-->
+<!--
+	generated 264 seconds ago
+	generated in 0.684 seconds
+	served from batcache in 0.005 seconds
+	expires in 36 seconds
+-->
+<head>
+<meta charset="UTF-8" />
+<title>Fibers and Threads in node.js &#8211; what for? | Bruno&#039;s Ramblings</title>
+<link rel="profile" href="http://gmpg.org/xfn/11" />
+<link rel="stylesheet" type="text/css" media="all" href="http://s1.wp.com/wp-content/themes/pub/twentyten/style.css?m=1375463477g" />
+<link rel="pingback" href="http://bjouhier.wordpress.com/xmlrpc.php" />
+<link rel="alternate" type="application/rss+xml" title="Bruno&#039;s Ramblings &raquo; Feed" href="http://bjouhier.wordpress.com/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Bruno&#039;s Ramblings &raquo; Comments Feed" href="http://bjouhier.wordpress.com/comments/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Bruno&#039;s Ramblings &raquo; Fibers and Threads in node.js &#8211; what&nbsp;for? Comments Feed" href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/feed/" />
+<script type="text/javascript">
+/* <![CDATA[ */
+function addLoadEvent(func){var oldonload=window.onload;if(typeof window.onload!='function'){window.onload=func;}else{window.onload=function(){oldonload();func();}}}
+/* ]]> */
+</script>
+<link rel='stylesheet' id='all-css-0' href='http://s0.wp.com/_static/??-eJyNjlEKwjAQRC9kXDRF8UM8S5rGJO0mG5oNobc3KmKhCH4NO7yZWahJaIpsIkMoImGxPmZAP5kMo+Gk9CRe117nvIMV3iPZb4CsNQMVFndCpArVD9bwJrTaSJQbjcrPkHlBs2HZmdC+SKUHrs1YmvtGRU2awr/lTs0+2o/+mnEdWKRe4RO4hetBni+yO56kHB/97m1X' type='text/css' media='all' />
+<script type='text/javascript'>
+/* <![CDATA[ */
+var LoggedOutFollow = {"invalid_email":"Your subscription did not succeed, please try again with a valid email address."};
+/* ]]> */
+</script>
+<script type='text/javascript' src='http://s2.wp.com/_static/??-eJyFkN0KwjAMRl/IrviDxQvxWbYuK6ltU5vWMZ/eDiYoDnaVkBxy+CLHKDSFDCFLy9JThw5EYUitqTOBYaDG8k5WDoN2pQeeQfsokKalbALCo0lthsZj+MBf1kicPTBX5cr2V4XhiTBuYhZybPVdJGB8/V3tHBkRXTEYWNbeQE8li4Gco1GO2BvIa6E0eT9/JUF00xLm5q/7o1KHs7qok30DqLN9jA=='></script>
+<link rel='stylesheet' id='all-css-0' href='http://s2.wp.com/wp-content/mu-plugins/highlander-comments/style.css?m=1377793621g' type='text/css' media='all' />
+<!--[if lt IE 8]>
+<link rel='stylesheet' id='highlander-comments-ie7-css'  href='http://s2.wp.com/wp-content/mu-plugins/highlander-comments/style-ie7.css?m=1351637563g&#038;ver=20110606' type='text/css' media='all' />
+<![endif]-->
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://bjouhier.wordpress.com/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://bjouhier.wordpress.com/wp-includes/wlwmanifest.xml" /> 
+<link rel='prev' title='Yield &#8211; Resume vs. Asynchronous Callbacks &#8211; An&nbsp;Equivalence' href='http://bjouhier.wordpress.com/2011/05/24/yield-resume-vs-asynchronous-callbacks/' />
+<link rel='next' title='Node.js: Awesome Runtime and New Age JavaScript&nbsp;Gospel' href='http://bjouhier.wordpress.com/2012/04/14/node-js-awesome-runtime-and-new-age-javascript-gospel/' />
+<meta name="generator" content="WordPress.com" />
+<link rel='canonical' href='http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/' />
+<link rel='shortlink' href='http://wp.me/pVrY0-50' />
+<link rel="alternate" type="application/json+oembed" href="http://public-api.wordpress.com/oembed/1.0/?format=json&amp;url=http%3A%2F%2Fbjouhier.wordpress.com%2F2012%2F03%2F11%2Ffibers-and-threads-in-node-js-what-for%2F&amp;for=wpcom-auto-discovery" /><link rel="alternate" type="application/xml+oembed" href="http://public-api.wordpress.com/oembed/1.0/?format=xml&amp;url=http%3A%2F%2Fbjouhier.wordpress.com%2F2012%2F03%2F11%2Ffibers-and-threads-in-node-js-what-for%2F&amp;for=wpcom-auto-discovery" />
+<!-- Jetpack Open Graph Tags -->
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Fibers and Threads in node.js - what for?" />
+<meta property="og:url" content="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/" />
+<meta property="og:description" content="I like node.js, and I&#039;m not the only one, obviously! I like it primarily for two things: it is simple and it is very fast. I already said it many times but one more won&#039;t hurt. Before working with ..." />
+<meta property="og:site_name" content="Bruno&#039;s Ramblings" />
+<meta name="twitter:site" content="@wordpressdotcom" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:creator" content="@wordpressdotcom" />
+<meta property="fb:app_id" content="249643311490" />
+<meta property="article:publisher" content="https://www.facebook.com/WordPresscom" />
+<link rel="shortcut icon" type="image/x-icon" href="http://s2.wp.com/i/favicon.ico?m=1311975824g" sizes="16x16 24x24 32x32 48x48" />
+<link rel="icon" type="image/x-icon" href="http://s2.wp.com/i/favicon.ico?m=1311975824g" sizes="16x16 24x24 32x32 48x48" />
+<link rel="apple-touch-icon-precomposed" href="http://s0.wp.com/i/webclip.png?m=1355642671g" />
+<link rel='openid.server' href='http://bjouhier.wordpress.com/?openidserver=1' />
+<link rel='openid.delegate' href='http://bjouhier.wordpress.com/' />
+<link rel="search" type="application/opensearchdescription+xml" href="http://bjouhier.wordpress.com/osd.xml" title="Bruno&#039;s Ramblings" />
+<link rel="search" type="application/opensearchdescription+xml" href="http://wordpress.com/opensearch.xml" title="WordPress.com" />
+		<style>
+		/* <![CDATA[ */
+		/* Block: reblog */
+		
+		.reblog-from img                   { margin: 0 10px 0 0; vertical-align: middle; padding: 0; border: 0; }
+		.reblogger-note img.avatar         { float: left; padding: 0; border: 0; }
+		.reblogger-note-content            { margin: 0 0 20px; }
+		.reblog-post .wpcom-enhanced-excerpt-content { border-left: 3px solid #eee; padding-left: 15px; }
+		.reblog-post ul.thumb-list         { display: block; list-style: none; margin: 2px 0; padding: 0; clear: both; }
+		.reblog-post ul.thumb-list li      { display: inline; margin: 0; padding: 0 1px; border: 0; }
+		.reblog-post ul.thumb-list li a    { margin: 0; padding: 0; border: 0; }
+		.reblog-post ul.thumb-list li img  { margin: 0; padding: 0; border: 0; }
+		
+		.reblog-post .wpcom-enhanced-excerpt { clear: both; }
+		
+		.reblog-post .wpcom-enhanced-excerpt address,
+		.reblog-post .wpcom-enhanced-excerpt li,
+		.reblog-post .wpcom-enhanced-excerpt h1,
+		.reblog-post .wpcom-enhanced-excerpt h2,
+		.reblog-post .wpcom-enhanced-excerpt h3,
+		.reblog-post .wpcom-enhanced-excerpt h4,
+		.reblog-post .wpcom-enhanced-excerpt h5,
+		.reblog-post .wpcom-enhanced-excerpt h6,
+		.reblog-post .wpcom-enhanced-excerpt p { font-size: 100% !important; }
+		
+		.reblog-post .wpcom-enhanced-excerpt blockquote,
+		.reblog-post .wpcom-enhanced-excerpt pre,
+		.reblog-post .wpcom-enhanced-excerpt code,
+		.reblog-post .wpcom-enhanced-excerpt q { font-size: 98% !important; }
+		
+
+		/* ]]> */
+		</style>
+		<meta name="application-name" content="Bruno&#039;s Ramblings" /><meta name="msapplication-window" content="width=device-width;height=device-height" /><meta name="msapplication-tooltip" content="A freethinker&#039;s view on programming" /><meta name="msapplication-task" content="name=Subscribe;action-uri=http://bjouhier.wordpress.com/feed/;icon-uri=http://s2.wp.com/i/favicon.ico" /><meta name="msapplication-task" content="name=Sign up for a free blog;action-uri=http://wordpress.com/signup/;icon-uri=http://s2.wp.com/i/favicon.ico" /><meta name="msapplication-task" content="name=WordPress.com Support;action-uri=http://support.wordpress.com/;icon-uri=http://s2.wp.com/i/favicon.ico" /><meta name="msapplication-task" content="name=WordPress.com Forums;action-uri=http://forums.wordpress.com/;icon-uri=http://s2.wp.com/i/favicon.ico" /><meta name="title" content="Fibers and Threads in node.js &#8211; what&nbsp;for? | Bruno&#039;s Ramblings on WordPress.com" />
+<meta name="description" content="I like node.js, and I&#039;m not the only one, obviously! I like it primarily for two things: it is simple and it is very fast. I already said it many times but one more won&#039;t hurt. Before working with node, I had spent many years working with threaded application servers. This was fun sometimes but&hellip;" />
+
+<script type='text/javascript' src='http://partner.googleadservices.com/gampad/google_service.js'>
+</script>
+<script type='text/javascript'>
+if ( typeof GS_googleAddAdSenseService == 'function' ) { GS_googleAddAdSenseService("ca-pub-3443918307802676"); }
+if ( typeof GS_googleEnableAllServices == 'function' ) { GS_googleEnableAllServices() };
+</script>
+<script type='text/javascript'>
+if ( typeof GA_googleAddSlot == 'function' ) { GA_googleAddSlot("ca-pub-3443918307802676", "wpcom_below_post"); }
+</script>
+<script type='text/javascript'>
+if ( typeof GA_googleFetchAds == 'function' ) { GA_googleFetchAds(); }
+</script>
+
+<script type="text/javascript">
+var wpcom_ads = { bid: 13692204, pt: 'permalink', wa: 0, as: 0, domain: 'bjouhier.wordpress.com', url: 'http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/', gid: '', };
+</script>
+<style id="syntaxhighlighteranchor"></style>
+<script type="text/javascript"> 
+	window.google_analytics_uacct = "UA-52447-2"; 
+</script>
+
+<script type="text/javascript">
+	var _gaq = _gaq || [];
+	_gaq.push(['_setAccount', 'UA-52447-2']);
+	_gaq.push(['_setDomainName', 'wordpress.com']);
+	_gaq.push(['_initData']);
+	_gaq.push(['_trackPageview']);
+
+	(function() {
+		var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+		ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+		(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ga);
+	})();
+</script>
+</head>
+
+<body class="single single-post postid-310 single-format-standard single-author mp6 highlander-enabled highlander-light">
+<div id="wrapper" class="hfeed">
+	<div id="header">
+		<div id="masthead">
+			<div id="branding" role="banner">
+								<div id="site-title">
+					<span>
+						<a href="http://bjouhier.wordpress.com/" title="Bruno&#039;s Ramblings" rel="home">Bruno&#039;s Ramblings</a>
+					</span>
+				</div>
+				<div id="site-description">A freethinker&#039;s view on programming</div>
+
+										<a class="home-link" href="http://bjouhier.wordpress.com/" title="Bruno&#039;s Ramblings" rel="home">
+							<img src="http://s1.wp.com/wp-content/themes/pub/twentyten/images/headers/cherryblossoms.jpg?m=1354156339g" width="940" height="198" alt="" />
+						</a>
+								</div><!-- #branding -->
+
+			<div id="access" role="navigation">
+			  				<div class="skip-link screen-reader-text"><a href="#content" title="Skip to content">Skip to content</a></div>
+								<div class="menu"><ul><li ><a href="http://bjouhier.wordpress.com/">Home</a></li><li class="page_item page-item-2"><a href="http://bjouhier.wordpress.com/about/">About</a></li></ul></div>
+			</div><!-- #access -->
+		</div><!-- #masthead -->
+	</div><!-- #header -->
+
+	<div id="main">
+
+		<div id="container">
+			<div id="content" role="main">
+
+			
+
+				<div id="nav-above" class="navigation">
+					<div class="nav-previous"><a href="http://bjouhier.wordpress.com/2011/05/24/yield-resume-vs-asynchronous-callbacks/" rel="prev"><span class="meta-nav">&larr;</span> Yield &#8211; Resume vs. Asynchronous Callbacks &#8211; An&nbsp;Equivalence</a></div>
+					<div class="nav-next"><a href="http://bjouhier.wordpress.com/2012/04/14/node-js-awesome-runtime-and-new-age-javascript-gospel/" rel="next">Node.js: Awesome Runtime and New Age JavaScript&nbsp;Gospel <span class="meta-nav">&rarr;</span></a></div>
+				</div><!-- #nav-above -->
+
+				<div id="post-310" class="post-310 post type-post status-publish format-standard hentry category-asynchronous-javascript category-uncategorized">
+											<h2 class="entry-title"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/" rel="bookmark">Fibers and Threads in node.js &#8211; what&nbsp;for?</a></h2>					
+					<div class="entry-meta">
+													<span class="meta-prep meta-prep-author">Posted on</span> <a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/" title="21:01" rel="bookmark"><span class="entry-date">March 11, 2012</span></a>							<span class="by-author"><span class="sep">by</span> <span class="author vcard"><a class="url fn n" href="http://bjouhier.wordpress.com/author/bjouhier/" title="View all posts by Bruno Jouhier" rel="author">Bruno Jouhier</a></span> </span>											</div><!-- .entry-meta -->
+
+					<div class="entry-content">
+						<p>I like node.js, and I&#8217;m not the only one, obviously! I like it primarily for two things: it is <em>simple</em> and it is <em>very fast</em>. I already said it many times but one more won&#8217;t hurt.</p>
+<p>Before working with node, I had spent many years working with threaded application servers. This was fun sometimes but it was also often frustrating: so many APIs to learn, so much code to write, so many risks with critical sections and deadlocks, such a waste of costly system resources (stacks, locks), etc. Node came as a breath of fresh air: a simple event loop and callbacks. You can do a lot with so little, and it really flies!</p>
+<p>But it does not look like we managed to eradicate threads. They keep coming back. At the beginning of last year Marcel Laverdet opened Pandora&#8217;s box by releasing <a href="https://github.com/laverdet/node-fibers"><code>node-fibers</code></a>: his threads are a little greener than our old ones but they have some similarities with them. And this week the box got wide open as Jorge Chamorro Bieling released <a href="https://github.com/xk/node-threads-a-gogo"><code>threads_a_gogo</code></a>, an implementation of <em>real</em> threads for node.js.</p>
+<p>Isn&#8217;t that awful? We were perfectly happy with the event loop and callbacks, and now we have to deal with threads and all their complexities again. Why on earth? Can&#8217;t we stop the thread cancer before it kills us!</p>
+<p>Well. First, things aren&#8217;t so bad because fibers and threads did not make it into node&#8217;s core. The core is still relying only on the event loop and callbacks. And it is probably better this way.</p>
+<p>And then maybe we need to overcome our natural aversion for threads and their complexities. Maybe these new threads aren&#8217;t so complex after all. And maybe they solve real problems. This is what I&#8217;m going to explore in this post.</p>
+<h2>Threads and Fibers</h2>
+<p>The main difference between fibers and real threads is on the scheduling side: threads use <em>implicit</em>, <em>preemptive</em> scheduling while fibers use <em>explicit</em>, <em>non-preemptive</em> scheduling. This means that threaded code may be interrupted at any point, even in the middle of evaluating an expression, to give CPU cycles to code running in another thread. With fibers, these interruptions and context switches don&#8217;t happen randomly; they are into the hands of the programmer who decides where his code is going to <em>yield</em> and give CPU cycles to other fibers.</p>
+<p>The big advantage of fiber&#8217;s explicit yielding is that the programmer does not need to protect critical code sections as long as they don&#8217;t yield. Any piece of code that does not yield cannot be interrupted by other fibers. This means a lot less synchronization overhead.</p>
+<p>But there is a flip side to the coin: threads are <em>fair</em>; fibers are not. If a fiber runs a long computation without yielding, it prevents other fibers from getting CPU cycles. A phenomenon known as <em>starvation</em>, and which is not new in node.js: it is inherent to node&#8217;s event loop model; if a callback starts a long computation, it blocks the event loop and prevents other events from getting their chance to run.</p>
+<p>Also, threads take advantage of multiple cores. If four threads compete for CPU on a quad-core processor, each thread gets 100% (or close) of a core. With fibers there is no real parallelism; at one point in time, there is only one fiber that runs on one of the cores and the other fibers only get a chance to run at the next yielding point.</p>
+<h2>Fibers &#8211; What for?</h2>
+<p>So, it looks like fibers don&#8217;t bring much to the plate. They don&#8217;t allow node modules to take advantage of multiple cores and they have the same starvation/fairness issues as the basic event loop. What&#8217;s the deal then?</p>
+<p>Fibers were introduced and are getting some love primarily because they solve one of node&#8217;s big programming pain points: the so called <em>callback pyramid of doom</em>. The problem is best demonstrated by an example:</p>
+<pre>
+function archiveOrders(date, cb) {
+  db.connect(function(err, conn) {
+    if (err) return cb(err);
+    conn.query("select * from orders where date &lt; ?&quot;,  
+               [date], function(err, orders) {
+      if (err) return cb(err);
+      helper.each(orders, function(order, next) {
+        conn.execute(&quot;insert into archivedOrders ...&quot;, 
+                     [order.id, ...], function(err) {
+          if (err) return cb(err);
+          conn.execute(&quot;delete from orders where id=?&quot;, 
+                       [order.id], function(err) {
+            if (err) return cb(err);
+            next();
+          });
+        });
+      }, function() {
+        console.log(&quot;orders have been archived&quot;);
+        cb();
+      });
+    });
+  });
+}
+</pre>
+<p>This is a very simple piece of business logic but we already see the pyramid forming. Also, the code is polluted by lots of <em>callback noise</em>. And things get worse as the business logic gets more complex, with more tests and loops. </p>
+<p>Fibers, with Marcel&#8217;s <code>futures</code> library, let you rewrite this code as:</p>
+<pre>
+var archiveOrders = (function(date) {
+  var conn = db.connect().wait();
+  conn.query("select * from orders where date &lt; ?&quot;,  
+             [date]).wait().forEach(function(order) {
+    conn.execute(&quot;insert into archivedOrders ...&quot;, 
+                 [order.id, ...]).wait();
+    conn.execute(&quot;delete from orders where id=?&quot;, 
+                 [order.id]).wait();
+  });
+  console.log(&quot;orders have been archived&quot;);
+}).future();
+</pre>
+<p>The callback pyramid is gone; the signal to noise ratio is higher, asynchronous calls can be chained (for example <code>query(...).wait().forEach(...)</code>), etc. And things don&#8217;t get worse when the business logic gets more complex. You just write <em>normal</em> code with the usual control flow keywords (<code>if</code>, <code>while</code>, etc.) and built-in functions (<code>forEach</code>). You can even use classical <code>try/catch</code> exception handling and you get complete and meaningful stack traces. </p>
+<p>Less code. Easier to read. Easier to modify. Easier to debug. Fibers clearly give the programmer a better comfort zone.</p>
+<p>Fibers make this possible because they solve a tricky <em>topological</em> problem with callbacks. I&#8217;ll try to explain this problem on a very simple example:</p>
+<pre>
+db.connect(function(err, conn) {
+  if (err) return cb(err);
+  // conn is available in this block
+  doSomething(conn);
+});
+// Would be nice to be able to assign conn to a variable 
+// in this scope so that we could resume execution here 
+// rather than in the block above.
+// But, unfortunately, this is impossible, at least if we 
+// stick to vanilla JS (without fibers).
+</pre>
+<p>The <em>topological</em> issue is that the <code>conn</code> value is only accessible in the callback scope. If we could transfer it to the outer scope, we could continue execution at the top level and avoid the pyramid of doom. Naively we would like to do the following:</p>
+<pre>
+var c;
+db.connect(function(err, conn) {
+  if (err) return cb(err);
+  c = conn;
+});
+// conn is now in c (???)
+doSomething(c);
+</pre>
+<p>But it does not work because the callback is invoked asynchronously. So <code>c</code> is still undefined when execution reaches <code>doSomething(c)</code>. The <code>c</code> variable gets assigned much later, when the asynchronous <code>connect</code> completes.</p>
+<p>Fibers make this possible, though, because they provide a <code>yield</code> function that allows the code to wait for an answer from the callback. The code becomes:</p>
+<pre>
+var fiber = Fiber.current;
+db.connect(function(err, conn) {
+  if (err) return fiber.throwInto(err);
+  fiber.run(conn);
+});
+// Next line will yield until fiber.throwInto 
+// or fiber.run are called
+var c = Fiber.yield();
+// If fiber.throwInto was called we don't reach this point 
+// because the previous line throws.
+// So we only get here if fiber.run was called and then 
+// c receives the conn value.
+doSomething(c);
+// Problem solved! 
+</pre>
+<p>Things are slightly more complex in real life because you also need to create a <code>Fiber</code> to make it work.</p>
+<p>But the key point is that the <code>yield/run/throwInto</code> combination makes it possible to transfer the <code>conn</code> value from the inner scope to the outer scope, which was impossible before.</p>
+<p>Here, I dived into the low level fiber primitives. I don&#8217;t want this to be taken as an encouragement to write code with these primitives because this can be very error prone. On the other hand, Marcel&#8217;s <code>futures</code> library provides the right level of abstraction and safety.</p>
+<p>And, to be complete, it would be unfair to say that fibers solve just this problem. They also enable powerful programming abstractions like generators. But my sense is that the main reason why they get so much attention in node.js is because they provide a very elegant and efficient solution to the <em>pyramid of doom</em> problem.</p>
+<h3>Sponsored Ad</h3>
+<p>The <em>pyramid of doom</em> problem can be solved in a different way, by applying a CPS transformation to the code. This is what my own tool, <a href="https://github.com/Sage/streamlinejs"><code>streamline.js</code></a>, does. It leads to code which is very similar to what you&#8217;d write with fiber&#8217;s <code>futures</code> library:</p>
+<pre>
+function archiveOrders(date, _) {
+  var conn = db.connect(_);
+  flows.each(_, conn.query("select * from orders where date &lt; ?&quot;,  
+                           [date], _), function(_, order) {
+    conn.execute(&quot;insert into archivedOrders ...&quot;, 
+                 [order.id, ...], _);
+    conn.execute(&quot;delete from orders where id=?&quot;, 
+                 [order.id], _);
+  });
+  console.log(&quot;orders have been archived&quot;);
+}
+</pre>
+<p>The signal to noise ratio is even slightly better as the <code>wait()</code> and <code>future()</code> calls have been eliminated. </p>
+<p>And streamline gives you the choice between transforming the code into pure callback code, or into code that takes advantage of the <code>node-fibers</code> library. If you choose the second option, the transformation is much simpler and preserves line numbers. And the best part is that I did not even have to write the fibers transformation, Marcel offered it on a silver plate.</p>
+<h3>Wrapping up on fibers</h3>
+<p>In summary, fibers don&#8217;t really change the execution model of node.js. Execution is still single-threaded and the scheduling of fibers is non-preemptive, just like the scheduling of events and callbacks in node&#8217;s event loop. Fibers don&#8217;t really bring much help with fairness/starvation issues caused by CPU intensive tasks either.</p>
+<p>But, on the other hand, fibers solve the <code>callback pyramid of doom</code> problem and can provide a great relief to developers, especially those who have thick layers of logic to write.</p>
+<h2>Threads &#8211; What for?</h2>
+<p>As I said in the intro, threads landed into node this week, with Jorge&#8217;s <code>thread_a_gogo</code> implementation (and I had a head start on them because Jorge asked me to help with beta testing and packaging). What do they bring to the plate? And this time we are talking about <em>real</em> threads, not the green kind. Shouldn&#8217;t we be concerned that these threads will drag us into the classical threading issues that we had avoided so far?</p>
+<p>Well, the answer is loud and clear: there is nothing to be worried about! These threads aren&#8217;t disruptive in any way. They won&#8217;t create havoc in what we have. But they will fill an important gap, as they will allow us to handle CPU intensive operations very cleanly and efficiently in node. In short, all we get here is bonus!</p>
+<p>Sounds too good to be true! Why would these threads be so good when we had so many issues with threads before? The answer is simple: because we had the wrong culprit! The problems that we had were not due to the threads themselves, they were due to the fact that we had <em>SHARED MUTABLE STATE</em>!</p>
+<p>When you are programming with threads in Java or .NET or other similar environments, any object which is directly or indirectly accessible from a global variable, or from a reference that you pass from one thread to another, is shared by several threads. If this object is immutable, there is no real problem because no thread can alter it. But if the object is mutable, you have to introduce synchronization to ensure that the object&#8217;s state is changed and read in a disciplined way. If you don&#8217;t, some thread may access the object in an inconsistent state because another thread was interrupted in the middle of a modification on the object. And then things usually get really bad: incorrect values, crashes because data structures are corrupted, etc. </p>
+<p>If you have shared mutable state, you need synchronization. And synchronization is a difficult and risky art. If your locks are too coarse you get very low throughput because your threads spend most of their time waiting on locks. If they are too granular, you run the risk of missing some edge cases in your locking strategy or of letting deadlocks creep in. And, even if you get your synchronization right, you pay a price for it because locks are not free and don&#8217;t scale well.</p>
+<p>But <em>threads a gogo</em> (I&#8217;ll call them <em>TAGG</em> from now on) don&#8217;t share mutable state. Each thread runs in its own <em>isolate</em>, which means that it has its own copy of the Javascript code, its own global variables, its own heap and stack. Also, the API does not let you pass a reference to a mutable Javascript object from one thread to another. You can only pass strings (which are immutable in Javascript) (*). So you are on the safe side, you don&#8217;t run the risk of having one thread modify something that another thread is accessing at the same time. And you don&#8217;t need synchronization, at least not the kind you needed around shared mutable objects.</p>
+<p>(*) it would be nice to be able to share <em>frozen</em> objects across threads. This is not available in the first version of TAGG but this may become possible in the future. TAGG may also support passing buffers across thread boundaries at some point (note that this may introduce a limited, but acceptable, form of shared state). </p>
+<p>I hope that I have reassured the skeptics at this point. As Jorge puts it, <em>these threads aren&#8217;t evil</em>. And actually, they solve an important problem which was dramatized in a <a href="http://teddziuba.com/2011/10/node-js-is-cancer.html">blog post</a> a few months ago: node breaks on CPU intensive tasks. The blog post that I&#8217;m referring to was really trashy and derogative and it was making a huge fuss about a problem that most node applications won&#8217;t have. But it cannot be dismissed completely: some applications need to make expensive computations, and, without threads, node does not handle this well, to say the least, because any long running computation blocks the event loop. This is where TAGG comes to the rescue.</p>
+<p>If you have a function that uses a lot of CPU, TAGG lets you create a worker thread and load your function into it. The API is straightforwards:</p>
+<pre>
+var TAGG = require('threads_a_gogo');
+
+// our CPU intensive function
+function fibo(n) { 
+  return n &gt; 1 ? fibo(n - 1) + fibo(n - 2) : 1;
+}
+
+// create a worker thread
+var t = TAGG.create();
+// load our function into the worker thread
+t.eval(fibo);
+</pre>
+<p>Once you have loaded your function, you can call it. Here also the API is simple:</p>
+<pre>
+t.eval("fibo(30)", function(err, result) {
+  console.log("fibo(30)=" + result);
+});
+</pre>
+<p>The function is executed in a separate thread, running in its own isolate. It runs in parallel with the main thread. So, if you have more than one core the computation will run at full speed in a spare core, without any impact on the main thread, which will continue to dispatch and process events at full speed. </p>
+<p>When the function completes, its result is transferred to the main thread and dispatched to the callback of the <code>t.eval</code> call. So, from the main thread, the <code>fibo</code> computation behaves like an ordinary asynchronous operation: it is initiated by the <code>t.eval</code> call and the result comes back through a callback.</p>
+<p>Often you&#8217;ll have several requests that need expensive computations. So TAGG comes with a simple pool API that lets you allocate several threads and dispatch requests to the first available one. For example:</p>
+<pre>
+var pool = TAGG.createPool(16);
+// load the function in all 16 threads
+pool.all.eval(fibo);
+// dispatch the request to one of the threads
+pool.any.eval("fibo(30)", function(err, result) {
+  console.log("fibo(30)=" + result);
+});
+</pre>
+<p>TAGG also provides support for events. You can exchange events in both directions between the main thread and worker threads. And, as you probably guessed at this point, the API is naturally aligned on node&#8217;s <code>Emitter</code> API. I won&#8217;t give more details but the TAGG module contains several examples.</p>
+<p>A slight word of caution though: this is a first release so TAGG may lack a few <em>usability</em> features. The one that comes first to mind is a module system to make it easy to load complex functions with code split in several source files. And there are still a lot of topics to explore, like passing frozen objects or buffers. But the implementation is very clean, very simple and performance is awesome. </p>
+<h3>Wrapping up on threads</h3>
+<p>Of course, I&#8217;m a bit biased because Jorge involved me in the TAGG project before the release. But I find TAGG really exciting. It removes one of node&#8217;s main limitations, its inability to deal with intensive computations. And it does it with a very simple API which is completely aligned on node&#8217;s fundamentals.</p>
+<p>Actually, threads are not completely new to node and you could already write addons that delegate complex functions to threads, but you had to do it in C/C++. Now, you can do it in Javascript. A very different proposition for people like me who invested a lot on Javascript recently, and not much on C/C++.</p>
+<p>The problem could also be solved by delegating long computations to child processes but this is costlier and slower.</p>
+<p>From a more academic standpoint, TAGG brings a first bit of Erlang&#8217;s concurrency model, based on <em>share nothing threads</em> and <em>message passing</em>, into node. An excellent move.</p>
+<h2>Putting it all together</h2>
+<p>I thought that I was going to write a short post, for once, but it looks like I got overboard, as usual. So I&#8217;ll quickly recap by saying that fibers and threads are different beasts and play different roles in node. </p>
+<p>Fibers introduce powerful programming abstractions like generators and fix the <em>callback pyramid</em> problem. They address a <em>usability</em> issue.</p>
+<p>Threads, on the other hand, fix a hole in node&#8217;s story, its inability to deal with CPU intensive operations, without having to dive into C/C++. They address a <em>performance</em> issue.</p>
+<p>And the two blend well together (and &#8212; sponsored ad &#8212; they also blend with <code>streamline.js</code>), as this last example shows:</p>
+<pre>
+var pool = TAGG.createPool(16);
+pool.all.eval(fibo);
+console.log("fibo(30)=" + pool.any.eval("fibo(30)", _));
+</pre>
+<p>Kudos to Marcel and Jorge for making these amazing technologies available to the community.</p>
+
+<div class="wpa" style="position: relative; width:300px; text-align: center; padding: 0; margin: 10px auto; overflow: hidden; clear: both;">
+<a style="position: absolute; text-align: left; display: block; font: 9px/1 sans-serif; text-decoration: underline;" href="http://en.wordpress.com/about-these-ads/" rel="nofollow">About these ads</a>
+<script type="text/javascript">
+		var wpcom_adclk_hovering = false;
+		var wpcom_adclk_recorded = false;
+		var wpcom_adclk_theme = "Twenty Ten";
+		var wpcom_adclk_slot = "wpcom_below_post";
+		var wpcom_adclk_network = ( typeof wpcom_adclk_network === "undefined" ) ? "" : wpcom_adclk_network ;
+
+		jQuery(document).ready( function() {
+			function wpcom_adclk_hover_yes() { wpcom_adclk_hovering = true; }
+			function wpcom_adclk_hover_no() { wpcom_adclk_hovering = false; }
+			jQuery(".wpa").click(wpcom_adclk_click);
+			jQuery(".wpa iframe").hover( wpcom_adclk_hover_yes, wpcom_adclk_hover_no );
+			jQuery(".wpa object").hover( wpcom_adclk_hover_yes, wpcom_adclk_hover_no );
+
+			jQuery(window).blur( function() {
+				if ( wpcom_adclk_hovering ) { wpcom_adclk_click(); }
+			});
+		});
+
+		function wpcom_adclk_impression() {
+			var stat_gif = document.location.protocol + "//stats.wordpress.com/g.gif?v=wpcom-no-pv";
+			stat_gif += "&x_ads_imp_theme=" + wpcom_adclk_theme;
+			stat_gif += "&x_ads_imp_placement="+wpcom_adclk_slot;
+			stat_gif += "&x_ads_imp_network=" + wpcom_adclk_network;
+			stat_gif += "&x_ads_imp_theme_network="+wpcom_adclk_theme+"_"+wpcom_adclk_network;
+			new Image().src = stat_gif + "&baba=" + Math.random();
+			return true;
+		}
+
+		function wpcom_adclk_click() {
+			if (wpcom_adclk_recorded) { return true; } // no double counting
+			var stat_gif = document.location.protocol + "//stats.wordpress.com/g.gif?v=wpcom-no-pv";
+			stat_gif += "&x_ads_click_theme=" + wpcom_adclk_theme;
+			stat_gif += "&x_ads_click_placement="+wpcom_adclk_slot;
+			stat_gif += "&x_ads_click_network=" + wpcom_adclk_network;
+			stat_gif += "&x_ads_click_theme_network="+wpcom_adclk_theme+"_"+wpcom_adclk_network;
+
+			new Image().src = stat_gif + "&baba=" + Math.random();
+			wpcom_adclk_recorded = true;
+			var now=new Date(); var end=now.getTime()+250;
+			while(true){now=new Date();if(now.getTime()>end){break;}}
+			return true;
+		}
+	
+if ( typeof GA_googleAddAttr == 'function' ) {
+GA_googleAddAttr("AdOpt", "1");
+GA_googleAddAttr("Origin", "other");
+GA_googleAddAttr("LangId", "1");
+GA_googleAddAttr("Domain", "bjouhier.wordpress.com");
+GA_googleAddAttr("BlogId", "13692204");
+GA_googleAddAttr("Autotag", "technology");
+GA_googleAddAttr("Tag", "asynchronous-javascript");
+GA_googleAddAttr("theme_bg", "ffffff");
+GA_googleAddAttr("theme_text", "333333");
+GA_googleAddAttr("theme_link", "0066cc");
+GA_googleAddAttr("theme_border", "cccccc");
+GA_googleAddAttr("theme_url", "ff4b33");
+GA_googleAddAdSensePageAttr("google_page_url", "http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/");
+GA_googleFillSlot("wpcom_below_post");
+}
+</script>
+</div>
+<style type="text/css">
+div.wpa>div { margin-top: 1em; } #google_ads_div_wpcom_below_post_adsafe_ad_container { display: block !important; }
+</style>
+<script type="text/javascript">
+jQuery( window ).load( function() {
+    if ( jQuery(".wpa script[src*='shareth.ru']").length > 0 || jQuery(".wpa iframe[src*='boomvideo.tv']").length > 0 || jQuery(".wpa iframe[src*='viewablemedia.net']").length > 0 || jQuery(".wpa .sharethrough-placement").length > 0 ) {
+        jQuery( '.wpa' ).css( 'width', '400px' );
+    }
+setTimeout(function(){if(typeof GS_googleAddAdSenseService !== 'function'){new Image().src=document.location.protocol+"//stats.wordpress.com/g.gif?v=wpcom-no-pv&x_noads=adblock&baba="+Math.random()}},100);
+} );
+</script>
+<div id="jp-post-flair" class="sharedaddy sd-like-enabled sd-sharing-enabled"><div class="sharedaddy sd-sharing-enabled"><div class="robots-nocontent sd-block sd-social sd-social-icon-text sd-sharing"><h3 class="sd-title">Share this:</h3><div class="sd-content"><ul><li><a href="#" class="sharing-anchor sd-button share-more"><span>Share</span></a></li><li class="share-end"></li></ul><div class="sharing-hidden"><div class="inner" style="display: none;"><ul><li class="share-email"><a rel="nofollow" class="share-email sd-button share-icon" href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/?share=email" title="Click to email this to a friend"><span>Email</span></a></li><li class="share-facebook"><a rel="nofollow" class="share-facebook sd-button share-icon" href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/?share=facebook" title="Share on Facebook" id="sharing-facebook-310"><span>Facebook</span></a></li><li class="share-end"></li><li class="share-digg"><a rel="nofollow" class="share-digg sd-button share-icon" href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/?share=digg" title="Click to Digg this post"><span>Digg</span></a></li><li class="share-reddit"><a rel="nofollow" class="share-reddit sd-button share-icon" href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/?share=reddit" title="Click to share on Reddit"><span>Reddit</span></a></li><li class="share-end"></li><li class="share-linkedin"><a rel="nofollow" class="share-linkedin sd-button share-icon" href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/?share=linkedin" title="Click to share on LinkedIn" id="sharing-linkedin-310"><span>LinkedIn</span></a></li><li class="share-twitter"><a rel="nofollow" class="share-twitter sd-button share-icon" href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/?share=twitter" title="Click to share on Twitter" id="sharing-twitter-310"><span>Twitter</span></a></li><li class="share-end"></li><li class="share-stumbleupon"><a rel="nofollow" class="share-stumbleupon sd-button share-icon" href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/?share=stumbleupon" title="Click to share on StumbleUpon"><span>StumbleUpon</span></a></li><li class="share-end"></li></ul></div></div></div></div></div><div class='sharedaddy sd-block sd-like jetpack-likes-widget-wrapper jetpack-likes-widget-unloaded' id='like-post-wrapper-13692204-310-525d3f52cf4b6' data-src='//widgets.wp.com/likes/#blog_id=13692204&amp;post_id=310&amp;origin=bjouhier.wordpress.com&amp;obj_id=13692204-310-525d3f52cf4b6' data-name='like-post-frame-13692204-310-525d3f52cf4b6'><h3 class='sd-title'>Like this:</h3><div class='post-likes-widget-placeholder' style='height:55px'><span class='button'><span>Like</span></span> <span class="loading">Loading...</span></div><span class='sd-text-color'></span><a class='sd-link-color'></a></div></div>											</div><!-- .entry-content -->
+
+
+					<div class="entry-utility">
+												This entry was posted in <a href="http://bjouhier.wordpress.com/category/asynchronous-javascript/" title="View all posts in Asynchronous JavaScript" rel="category tag">Asynchronous JavaScript</a>, <a href="http://bjouhier.wordpress.com/category/uncategorized/" title="View all posts in Uncategorized" rel="category tag">Uncategorized</a>. Bookmark the <a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/" title="Permalink to Fibers and Threads in node.js &#8211; what&nbsp;for?" rel="bookmark">permalink</a>.											</div><!-- .entry-utility -->
+				</div><!-- #post-## -->
+
+				<div id="nav-below" class="navigation">
+					<div class="nav-previous"><a href="http://bjouhier.wordpress.com/2011/05/24/yield-resume-vs-asynchronous-callbacks/" rel="prev"><span class="meta-nav">&larr;</span> Yield &#8211; Resume vs. Asynchronous Callbacks &#8211; An&nbsp;Equivalence</a></div>
+					<div class="nav-next"><a href="http://bjouhier.wordpress.com/2012/04/14/node-js-awesome-runtime-and-new-age-javascript-gospel/" rel="next">Node.js: Awesome Runtime and New Age JavaScript&nbsp;Gospel <span class="meta-nav">&rarr;</span></a></div>
+				</div><!-- #nav-below -->
+
+				
+			<div id="comments">
+
+
+			<h3 id="comments-title">40 Responses to <em>Fibers and Threads in node.js &#8211; what&nbsp;for?</em></h3>
+
+
+			<ol class="commentlist">
+					<li class="comment even thread-even depth-1 highlander-comment" id="li-comment-150">
+		<div id="comment-150">
+			<div class="comment-author vcard">
+				<img alt='' src='http://1.gravatar.com/avatar/a4778624115865f171f0bc6ebf9a471b?s=40&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://gravatar.com/acoudeyras' rel='external nofollow' class='url'>Alexis Coudeyras</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-150">
+				March 11, 2012 at 23:21</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Hi Bruno,</p>
+<p>Great post.</p>
+<p>Is there in node land a way to share data structures between workers/threads without cloning (either structured cloning or using a string to serialize the object) ?<br />
+I think chrome has added a way to share objects between workers without having to clone them, but when shared, the object was not accessible in the main or the others threads (to avoid synchronisation issue), i don&#8217;t remember the name of this technic.</p>
+<p>When you have big data structures and you want to split the work on them on multiple workers, cloning is an issue (because data is big) and &#8220;erasing&#8221; is an issue (because you can&#8217;t share the data).</p>
+<p>As you have said, if your data is immutable, you don&#8217;t need to be share nothing, and since you have native popcycle immutability in javascript with object.freeze, i find it crazy to not use it. </p>
+<p>There is something that is objectionable in the node.js (and erlang vm by the way) mindset. It seems to be like &#8220;you, developper, are stupid, so i won&#8217;t allow you to do dangerous stuff&#8221;. I prefer the mindset &#8220;you, developper, are stupid and lazy, so i will make an api that make the safe stuff easy to do and the dangerous stuff hard to do, but i will allow them, because maybe there is somebody who is smarter than me&#8221;.<br />
+Shared mutable state between threads is evil because you need synchronisation and synchronisation is hard is just &#8220;almost&#8221; true.<br />
+You can share mutable state without synchronisation between threads if :<br />
+- you don&#8217;t mutate it.<br />
+- each thread is responsible alone for a part of the state</p>
+<p>If you want to split the work on a mutable array without cloning or freezing it for exemple, you can just create a wrapper taking the initial array, a start int and an end int, create a getAt(int idx) method (that add start to idx) and override the length method (return the end int instead of the real length of the array). And voilà, you&#8217;ve got a safe mutable shared data structure without cloning and synchronisation, you can create many instance of it, one for each worker. If your language support operator overloading, you can even do that transparently for the user. That&#8217;s what scala does for it&#8217;s parallel collection framework for exemple.<br />
+This is shared nothing, but it&#8217;s user defined shared nothing, not imposed by technology shared nothing. And as Alex Payne put it (<a href="http://al3x.net/2010/07/27/node.html" rel="nofollow">http://al3x.net/2010/07/27/node.html</a>), when you really have to scale, you need every options on the table, not just the accepted best pratices. Of course, i will agree that most applications don&#8217;t have big scalability issues, but some have, and more problematic : most of the time you discover those scalability issues late in the developpment process. If the only option you&#8217;ve got is &#8220;switch to C/C++&#8221;, this can be a big problem if you don&#8217;t have competences in C/C++.</p>
+<p>More important, Node.js seems far away from other technologies about parallelism, either in the erlang vm or in .net (parallel framework) or in java (fork/join framework) you have high level abstraction that manage your worker pool, the decomposition of works into tasks, the assignment of tasks to workers with work stealing technics. In Java and in .net you can have synchronisation issues, but you shouldn&#8217;t if you follow the guidelines (either by using a declarative model like in .net linq to objects queries, either by using a map/reduce model like in fork/join framework or be more functionnal like in scala). I don&#8217;t see anything like that in node land. As you can see, even in non event looped technologies, we are far away from the old shared mutable state synchronisation way.</p>
+<p>Even better, you can have very high level abstraction, like parallel collection in .net and scala, that manage the pool/task/steal works + make your algorithms (if they have no side effects) return the same results in mono thread mode and multi thread mode (think about the result of a parallel sort of an array for exemple), using transparently adapted parallel data structures. In Scala or in .net, i can parallelize list.sort(…).filter(…).map(…).groupBy(…) by adding .par before the list (or asParallel() in .net). Parallel collections don&#8217;t solve all problems of course, but it&#8217;s a cheap and (almost) safe way to handle a lot of parallelism problems. Sometimes having a cheaper, faster and almost safe way to do stuff is better than having a more expensive, slower, safer way to do stuf.</p>
+<p>The reactor pattern is a good fit for some applications, but not for all of them. It&#8217;s the best fit for reverse proxies, applications with collaborations capabilities that have a lot of concurrent users, … But i don&#8217;t think it&#8217;s the best technology for classical business application or for cpu and memory intensive application without much io.<br />
+Node.js has the event loop model so engraved in his core, that i think node.js will soon encounter a big challenge. I think node.js strength is more in javascript + V8 + npm, than is the event loop model. And as more and more people will switch to node.js because of js/V8/npm, a lot of them will find that node.js is not a good fit for what they are doing and you&#8217;ll have a lot of node.js forks. The multithreaded node.js for cpu intensive application, the big memory node.js for memory intensive application, the asynchronous as if it was synchronous node.js for business apps, …<br />
+I don&#8217;t know how the node &#8220;core&#8221; community will react to that, if the really want to be the new php, they will have to be more open minded than they have been.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=150#respond' onclick='return addComment.moveForm("comment-150", "150", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+	<li class="comment odd alt thread-odd thread-alt depth-1 highlander-comment" id="li-comment-151">
+		<div id="comment-151">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/bd9a86ce16b44e31611305306d144c68?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://gravatar.com/ichrisjacob' rel='external nofollow' class='url'>Chris Jacob</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-151">
+				March 12, 2012 at 01:49</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Excellent post. I&#8217;ve held off on diving into Node.js for a while now due to the &#8220;callback pyramid of doom&#8221; problem&#8230;. I knew it was only a matter of time until something more elegant came along. </p>
+<p>Thanks for bringing me backup to speed with where Node.js is at, and for explaining the difference between Fibers and Threads so clearly! </p>
+<p>I&#8217;m excited to take another look Node; so thank you for re-kindling my interest! ^_^</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=151#respond' onclick='return addComment.moveForm("comment-151", "151", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment byuser comment-author-bjouhier bypostauthor even depth-2 highlander-comment" id="li-comment-157">
+		<div id="comment-157">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5fae4fe6a889a91041bc556d50ccb2e3?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://bjouhier.wordpress.com' rel='external nofollow' class='url'>Bruno Jouhier</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-157">
+				March 13, 2012 at 22:36</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Hi Chris,</p>
+<p>Both fibers and streamline.js have been around for more than a year. And there is at least one social web site in production that was built with streamline (and CoffeeScript). So these are solid bricks on which you can build real apps.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=157#respond' onclick='return addComment.moveForm("comment-157", "157", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+	<li class="comment odd alt thread-even depth-1 highlander-comment" id="li-comment-152">
+		<div id="comment-152">
+			<div class="comment-author vcard">
+				<img alt='' src='http://0.gravatar.com/avatar/c193b9e5822e9c38cb8cf0781fb04820?s=40&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://codeflow.org/' rel='external nofollow' class='url'>pyalot</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-152">
+				March 12, 2012 at 12:46</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>I find the explicit notion of fibres backwards. There&#8217;s a thing called &#8220;co-routines&#8221;, and if you structure a simple API around them it looks like this:</p>
+<p>var callable = function(a, b){<br />
+  return a+b;<br />
+} </p>
+<p>var c = new Coroutine(callable);<br />
+result = c.switch(1, 2) // is 3</p>
+<p>Using co-routines you can do something rather convenient, you can build a scheduler, for instance on asynchronous I/O operations, and if you do, you can get completely synchronous, fibre unaware code like this:</p>
+<p>var connection = DB.connect()<br />
+doSomething(connection)</p>
+<p>Underneath a DB.connect would call some socket.connect/socket.read/socket.write, and underneath those the socket would be co-routine aware basically like this:<br />
+socket.read = function(data){<br />
+  scheduler.switch(socket.READ);<br />
+  write(self.fd, data);<br />
+}</p>
+<p>I&#8217;m sure you see the logic in this, and I don&#8217;t have to enumerate what the scheduler would do.</p>
+<p>I&#8217;m rather strongly opposed to fibres/threads that can&#8217;t be operated by code in a fashion that makes it invisible to application code.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=152#respond' onclick='return addComment.moveForm("comment-152", "152", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment even depth-2 highlander-comment" id="li-comment-158">
+		<div id="comment-158">
+			<div class="comment-author vcard">
+				<img alt='' src='http://1.gravatar.com/avatar/a610b1685f0d603d09e7c2ee1cb4eaec?s=40&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn">Marcel Laverdet</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-158">
+				March 14, 2012 at 02:48</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>You can do this in fibers.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=158#respond' onclick='return addComment.moveForm("comment-158", "158", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+	<li class="comment odd alt thread-odd thread-alt depth-1 highlander-comment" id="li-comment-153">
+		<div id="comment-153">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5ff13e50a3a0826a6e57b35b71cea503?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn">sam</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-153">
+				March 12, 2012 at 23:47</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>nice post! one question left.<br />
+you&#8217;v wrote about isolates but this feature is known to be canceled or to be more clearly isolates are known to be implemented later, much later.<br />
+so my question is now, if tagg relais on isolates how can tagg be over that threading feature or is it based on a unstable nodejs branch where isolates are implemented experimentally?</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=153#respond' onclick='return addComment.moveForm("comment-153", "153", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment byuser comment-author-bjouhier bypostauthor even depth-2 highlander-comment" id="li-comment-154">
+		<div id="comment-154">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5fae4fe6a889a91041bc556d50ccb2e3?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://bjouhier.wordpress.com' rel='external nofollow' class='url'>Bruno Jouhier</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-154">
+				March 13, 2012 at 08:45</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>TAGG is just a user land module and it works with node.js 0.6 and 0.7. Isolates are a V8 feature. So anyone can write a C++ addon that takes advantage of them. There&#8217;s no need to patch node.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=154#respond' onclick='return addComment.moveForm("comment-154", "154", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment odd alt depth-3 highlander-comment" id="li-comment-155">
+		<div id="comment-155">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5ff13e50a3a0826a6e57b35b71cea503?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn">sam</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-155">
+				March 13, 2012 at 18:41</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>okay. i may just remembered something wrong about isolates. so tagg is seems to be the no pain in the ass solution for using multicore machines more efficiently <img src='http://s0.wp.com/wp-includes/images/smilies/icon_smile.gif?m=1129645325g' alt=':)' class='wp-smiley' />  nice really nice!</p>
+</div>
+
+			<div class="reply">
+							</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+	<li class="comment byuser comment-author-bjouhier bypostauthor even depth-3 highlander-comment" id="li-comment-156">
+		<div id="comment-156">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5fae4fe6a889a91041bc556d50ccb2e3?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://bjouhier.wordpress.com' rel='external nofollow' class='url'>Bruno Jouhier</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-156">
+				March 13, 2012 at 22:25</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Your memory is alright. There were talks about isolates support in node 0.7 but that got canceled.</p>
+<p>From the little information I had, the design looked slightly different: each isolate was hosting a complete node runtime, while Jorge&#8217;s threads are just hosting CPU intensive operations that don&#8217;t do I/O.</p>
+</div>
+
+			<div class="reply">
+							</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+	<li class="comment odd alt thread-even depth-1 highlander-comment" id="li-comment-159">
+		<div id="comment-159">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5bed5c28883cb3ba13b8241b06144451?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn">shaun</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-159">
+				March 15, 2012 at 04:36</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>You mentioned Marcel&#8217;s Futures library working with Fibers.. can you let me know which library that is exactly? There are so many..</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=159#respond' onclick='return addComment.moveForm("comment-159", "159", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment byuser comment-author-bjouhier bypostauthor even depth-2 highlander-comment" id="li-comment-160">
+		<div id="comment-160">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5fae4fe6a889a91041bc556d50ccb2e3?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://bjouhier.wordpress.com' rel='external nofollow' class='url'>Bruno Jouhier</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-160">
+				March 15, 2012 at 08:27</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>It is bundled with <a href="https://github.com/laverdet/node-fibers" rel="nofollow">node-fibers</a> (scroll down to FUTURES section). And, BTW, streamline also has futures: <a href="https://github.com/Sage/streamlinejs/wiki/Futures" rel="nofollow">https://github.com/Sage/streamlinejs/wiki/Futures</a></p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=160#respond' onclick='return addComment.moveForm("comment-160", "160", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment odd alt depth-3 highlander-comment" id="li-comment-170">
+		<div id="comment-170">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5bed5c28883cb3ba13b8241b06144451?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn">shaun</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-170">
+				March 21, 2012 at 08:55</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Thank you.<br />
+And thanks for the blog post about the differences between the two libs.<br />
+Very helpful.</p>
+</div>
+
+			<div class="reply">
+							</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+	<li class="comment even thread-odd thread-alt depth-1 highlander-comment" id="li-comment-177">
+		<div id="comment-177">
+			<div class="comment-author vcard">
+				<img alt='' src='http://0.gravatar.com/avatar/01f7f8e100e1d7431d87a796104b9e34?s=40&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn">Hannes</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-177">
+				March 25, 2012 at 20:02</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Hi!<br />
+Thanks for the post! You clearly made it easier for me to work with threads and fibers in node.<br />
+One question though:<br />
+Is it possible to use other modules in a thread?<br />
+Because I can&#8217;t get the thread to work if I&#8217;m using another module&#8230;<br />
+What I&#8217;m doing is:<br />
+x making a new thread and loading the code from a file<br />
+x in this file i want to poll a sensor over a serial-connection and send the message back to the main thread. Therefor I need the serial-module.</p>
+<p>It all works fine standalone, but when I do a &#8220;require&#8221; in the thread-file it stops working, or at least I cannot send messages back to the main thread.</p>
+<p>Any idea if it is possible to use other modules in threads?</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=177#respond' onclick='return addComment.moveForm("comment-177", "177", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment byuser comment-author-bjouhier bypostauthor odd alt depth-2 highlander-comment" id="li-comment-178">
+		<div id="comment-178">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5fae4fe6a889a91041bc556d50ccb2e3?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://bjouhier.wordpress.com' rel='external nofollow' class='url'>Bruno Jouhier</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-178">
+				March 25, 2012 at 20:42</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Yes, <code>require</code> is not available in threads. I think that a module system would be a big plus but it hasn&#8217;t been implemented yet. So, today, you have to load code with a set of eval calls and you have to use closure tricks to encapsulate global vars. Not ideal but that&#8217;s how it is today&#8230;</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=178#respond' onclick='return addComment.moveForm("comment-178", "178", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment even depth-3 highlander-comment" id="li-comment-179">
+		<div id="comment-179">
+			<div class="comment-author vcard">
+				<img alt='' src='http://0.gravatar.com/avatar/01f7f8e100e1d7431d87a796104b9e34?s=40&amp;d=http%3A%2F%2F0.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn">Hannes</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-179">
+				March 26, 2012 at 01:10</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>thanx for clearing this up!</p>
+</div>
+
+			<div class="reply">
+							</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+	<li class="post pingback">
+		<p>Pingback: <a href='http://devblog.taptolearn.com/2012/03/head-tail-callbacks-nodejs/' rel='external nofollow' class='url'>Head, Tail and Callbacks in nodejs | The TapToLearn DevBlog</a></p>
+	</li><!-- #comment-## -->
+	<li class="post pingback">
+		<p>Pingback: <a href='http://asyncionews.com/?p=1299' rel='external nofollow' class='url'>Fibers and Threads in node.js – what for? &laquo; async I/O News</a></p>
+	</li><!-- #comment-## -->
+	<li class="post pingback">
+		<p>Pingback: <a href='http://stadolf.wordpress.com/2012/05/10/dealing-concurrently-with-long-running-blocking-tasks-in-node-js/' rel='external nofollow' class='url'>Dealing concurrently with long running / blocking tasks in node.js | Nerdcode from the Ivory Tower</a></p>
+	</li><!-- #comment-## -->
+	<li class="post pingback">
+		<p>Pingback: <a href='http://ajlopez.wordpress.com/2012/06/16/node-js-links-news-and-resources-10/' rel='external nofollow' class='url'>Node.Js: Links, News And Resources (10) &laquo; Angel &#8221;Java&#8221; Lopez on Blog</a></p>
+	</li><!-- #comment-## -->
+	<li class="post pingback">
+		<p>Pingback: <a href='http://ajlopez.wordpress.com/2012/06/14/node-js-links-news-and-resources-9/' rel='external nofollow' class='url'>Node.Js: Links, News And Resources (9) &laquo; Angel &#8221;Java&#8221; Lopez on Blog</a></p>
+	</li><!-- #comment-## -->
+	<li class="comment odd alt thread-even depth-1 highlander-comment" id="li-comment-416">
+		<div id="comment-416">
+			<div class="comment-author vcard">
+				<img alt='' src='http://1.gravatar.com/avatar/a789cf72d97c13687b6755eca83052a1?s=40&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn">Menno van Lavieren</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-416">
+				August 27, 2012 at 12:02</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Hi,<br />
+The TAGG looks nice and takes in my opinion the right approach to threading, modeled on a &#8216;web-service&#8217; style and then cut everything that isn&#8217;t needed when running in process. First make something that is save and then adding features like modules to create a complete platform. I like the Nodejs/Erlang mindset where something that isn&#8217;t save isn&#8217;t allowed. In a big project there is always someone that will abuse an unsafe feature and will break everything. If it can&#8217;t be proven correct it usually isn&#8217;t.<br />
+But fibers on the other hand will add nothing useful to the table. The reintroduce the reentry problem that have plagued other event-loop based models. If right now in Nodejs I wrap a function in to a process.nextTick(), I will be sure it will be called only after the current call-stack has unwind. With Fibers someone else can call yield and cause the function to execute to early. I&#8217;ll have to guard against this and maybe have to introduce a setTimeout to handle the case where the event-loop keeps executing my function in the current callstack.<br />
+The http library of Nodejs for example, now you will attach a event-handler to the onData event of a request inside the onRequest event-handler of your http server and be sure that you won&#8217;t drop any data. But what if your onRequest handler calls a complex function that somewhere uses Fibers and yields the cpu? The onData event might trigger before the onRequest handler is done and has all the event handlers attached. With &#8216;promises&#8217; or some new syntax in Coffee-script you are in control of yielding the cpu, with Fibers you are in a minefield.<br />
+With Fibers programming in Nodejs isn&#8217;t simple anymore. It creates another trap in which every programmer will fall at some point.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=416#respond' onclick='return addComment.moveForm("comment-416", "416", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment byuser comment-author-bjouhier bypostauthor even depth-2 highlander-comment" id="li-comment-417">
+		<div id="comment-417">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5fae4fe6a889a91041bc556d50ccb2e3?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://bjouhier.wordpress.com' rel='external nofollow' class='url'>Bruno Jouhier</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-417">
+				August 27, 2012 at 13:04</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>I agree that you are in the danger zone if you use the low-level fiber primitives. But this is not the case if you either stick to the <em>futures</em> API, or if you use <em>streamline.js</em>.</p>
+<p>If you stick to the <em>futures</em> API and discipline, the asynchronous functions that you write don&#8217;t return values directly. Instead, they return a future and you have to call <code>wait()</code> on this future to get a value, and (very important) all functions that call <code>wait()</code> <em>must</em> return futures. So, the yielding points are explicit and marked by <code>wait()</code> calls at all levels. The only problem is that nothing enforces this discipline upon you and it is very easy to <em>not</em> return a future from a call that contains <code>wait()</code> calls. If you do this you enter the danger zone because you start hiding <code>yield</code> calls under the carpet.</p>
+<p>With <em>streamline.js</em> you <em>cannot</em> hide the yielding points. It lets you call asynchronous functions the <em>sync</em> way but you have to pass the special <code>_</code> marker. And you can only pass it from a function which has the <code>_</code> marker in its parameter list. The streamline transformation engine will throw an exception if the marker is missing in the calling function&#8217;s signature. So you have no way to hide the yielding points. They are explicit at all levels and this makes it very easy to <em>reason</em> about things like race conditions and re-entrancy problems (actually, easier than with callbacks). At least that&#8217;s my experience with it.</p>
+<p>So I think that streamline.js provides the right level of abstraction. It lets you use the normal language features (conditionals, loops, try/catch, chaining, composition, initializers, etc.) with asynchronous calls and yet it prevents you from hiding yielding points. </p>
+<p>For me, fibers are a great runtime for streamline.js. And streamline is not tied to this runtime. It lets me choose between pure callbacks, fibers and generators (with different performance tradeoffs).</p>
+<p>So the <em>new syntax in CoffeeScript</em> that you mention could very well be <em>streamline.js</em>. It works both with CoffeeScript and JavaScript.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=417#respond' onclick='return addComment.moveForm("comment-417", "417", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment odd alt depth-3 highlander-comment" id="li-comment-418">
+		<div id="comment-418">
+			<div class="comment-author vcard">
+				<img alt='' src='http://1.gravatar.com/avatar/a789cf72d97c13687b6755eca83052a1?s=40&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn">Menno van Lavieren</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-418">
+				August 27, 2012 at 15:17</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>It&#8217;s a relief that the libraries on top of Fibers tackle this. I wouldn&#8217;t like the nice and predictable world of Nodejs to get more complicated. It&#8217;s a very subtle issue. And if things go wrong it is not easy to see how the problem really works or who is &#8216;wrong&#8217;. I hope we won&#8217;t end up in a situation where there is another coding guideline that says you should write all your code &#8216;event-loop-reentry-proof&#8217;.  Btw sorry my reply sounds a bit like a rant, I&#8217;ve to improve my writing skills.<br />
+I didn&#8217;t have any specific syntax in mind, but streamline could very well be it.</p>
+</div>
+
+			<div class="reply">
+							</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+	<li class="comment byuser comment-author-bjouhier bypostauthor even depth-3 highlander-comment" id="li-comment-419">
+		<div id="comment-419">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5fae4fe6a889a91041bc556d50ccb2e3?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://bjouhier.wordpress.com' rel='external nofollow' class='url'>Bruno Jouhier</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-419">
+				August 27, 2012 at 16:01</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Did not sound like a rant. The problem is real.</p>
+</div>
+
+			<div class="reply">
+							</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+	<li class="comment odd alt thread-odd thread-alt depth-1 highlander-comment" id="li-comment-587">
+		<div id="comment-587">
+			<div class="comment-author vcard">
+				<img alt='' src='http://i0.wp.com/a0.twimg.com/profile_images/2363748135/8bf9cjq2ztf1nuwhqmr8_normal.png?resize=40%2C40' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://twitter.com/boutell' rel='external nofollow' class='url'>Tom Boutell (@boutell)</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-587">
+				September 28, 2012 at 01:24</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>I&#8217;m late to this party, but the pyramid of doom problem has solutions that don&#8217;t require hogging the CPU until everything is done or introducing preemptive threads. </p>
+<p>The simplest:</p>
+<p>function openDb()<br />
+{<br />
+  db.connect(params, createTable);<br />
+}</p>
+<p>function createTable(err)<br />
+{<br />
+  db.createTable(params, insertFixtures);<br />
+}</p>
+<p>function insertFixtures(err)<br />
+{<br />
+  db.insertStuff(params, startServer);<br />
+}</p>
+<p>function startServer(err)&#8230; </p>
+<p>You get the idea.</p>
+<p>This really isn&#8217;t hard to read. The disadvantage is that you have to embed the name of the next function in each function.</p>
+<p>You can use the async module to get around this in all sorts of great ways. async.waterfall is particularly relevant, so I&#8217;m going to paste its description. but it&#8217;s not the only relevant option provided by async and similar modules.</p>
+<p>waterfall(tasks, [callback])</p>
+<p>Runs an array of functions in series, each passing their results to the next in the array. However, if any of the functions pass an error to the callback, the next function is not executed and the main callback is immediately called with the error.</p>
+<p>Arguments</p>
+<p>tasks &#8211; An array of functions to run, each function is passed a callback it must call on completion.<br />
+callback(err, [results]) &#8211; An optional callback to run once all the functions have completed. This will be passed the results of the last task&#8217;s callback.<br />
+Example</p>
+<p>async.waterfall([<br />
+    function(callback){<br />
+        callback(null, 'one', 'two');<br />
+    },<br />
+    function(arg1, arg2, callback){<br />
+        callback(null, 'three');<br />
+    },<br />
+    function(arg1, callback){<br />
+        // arg1 now equals 'three'<br />
+        callback(null, 'done');<br />
+    }<br />
+], function (err, result) {<br />
+   // result now equals &#8216;done&#8217;<br />
+});</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=587#respond' onclick='return addComment.moveForm("comment-587", "587", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+	<li class="comment byuser comment-author-bjouhier bypostauthor even thread-even depth-1 highlander-comment" id="li-comment-588">
+		<div id="comment-588">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5fae4fe6a889a91041bc556d50ccb2e3?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://bjouhier.wordpress.com' rel='external nofollow' class='url'>Bruno Jouhier</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-588">
+				September 28, 2012 at 09:41</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>@boutell</p>
+<p>These solutions are well known and I did experiment with them and others (promise libraries) two years ago, before writing streamline.js. My take at them is that they are ok if you&#8217;re writing a tight I/O library or a small application. But if you have lots of business rules to write on top of asynchronous I/O layers they force you to write a lot of extra code and explode your logic. To get an idea, take the streamline tutorial (<a href="https://github.com/Sage/streamlinejs/blob/master/tutorial/tutorial.md" rel="nofollow">https://github.com/Sage/streamlinejs/blob/master/tutorial/tutorial.md</a>) and rewrite it with named functions or async. Then compare the results: readability, maintainability, elegance, robustness, etc.</p>
+<p>Neither fibers nor streamline.js hog the CPU. The fibers library uses coroutines. Streamline.js generates callbacks (it writes them for you). </p>
+<p>Preemptive threads address a different problem: CPU intensive computations. They have nothing to do with the pyramid of doom. That&#8217;s one of the things I tried to explain in this post.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=588#respond' onclick='return addComment.moveForm("comment-588", "588", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+	<li class="comment odd alt thread-odd thread-alt depth-1 highlander-comment" id="li-comment-597">
+		<div id="comment-597">
+			<div class="comment-author vcard">
+				<img alt='' src='http://1.gravatar.com/avatar/7cdf566c7314726d4c358ba98976e627?s=40&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn">Blond Angel</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-597">
+				October 10, 2012 at 22:42</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>heads up!  Threads a go go is only for unix-based machines (linux, MacOS, etc).  Currently not available for Windows (yet).</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=597#respond' onclick='return addComment.moveForm("comment-597", "597", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+	<li class="comment even thread-even depth-1 highlander-comment" id="li-comment-602">
+		<div id="comment-602">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/81df87e0d3e269d6fa6a17c6914fd656?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://twitter.com/mikeschinkel' rel='external nofollow' class='url'>Mike Schinkel (@mikeschinkel)</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-602">
+				October 27, 2012 at 22:52</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Hi Bruno,</p>
+<p>Thanks for the great article.</p>
+<p>I&#8217;m relatively new to Node.js &#8212; most recently been developing in PHP for the past ~5 years &#8212; and am trying to figure out how to accomplish something and thing that streamlinejs might be the answer.  Fibers standalone looks like it could be except fibers isn&#8217;t supported on all Node.js hosts and that&#8217;s a deal killer for me. Anyway I&#8217;m wondering if you could let me know if you think streamlinejs will address the issue I&#8217;m trying to resolve. </p>
+<p>I&#8217;m trying to build an API proxy server in Node.js that execute a very simple Javascript-based DSL  that basically makes it easy for low skilled programmers to call APIs and get back something meaningful.  The GitHub project for this is at <a href="https://github.com/newclarity/concierge" rel="nofollow">https://github.com/newclarity/concierge</a>.</p>
+<p>I want to allow people to submit scripts like the following and just have them work (this assumes a &#8220;friends&#8221; endpoint for an API):</p>
+<pre>
+var friends = $api.GET("friends",'12345');  // 12345 is a user ID.
+api.out(friends);
+</pre>
+<p>Or the script could be more elaborate and transform the data:</p>
+<pre>
+var friends = $api.GET("friends",'12345');  // 12345 is a user ID.
+var newFriends = [];
+for(var i=0;i&lt;friends.length;i++){
+	newFriends[friends[i].ID] = friends[i].name;
+}
+api.out(newFriends);
+</pre>
+<p>Here&#039;s what $api might look like:</p>
+<pre>
+var $api = {
+	'magic' : require('magic'),
+	'GET' : function(resource,args) {
+		var data;
+		data = this.magic.get(self.applyArgs(self.resources['resource'],args));
+		return data;
+	},
+	'applyArgs': function(template,args) {
+		return 'logic to apply args here';
+		},
+	'resources' : {
+		'friends' : 'http://api.example.com/user/{user_id}/friends',
+		'events' : 'http://api.example.com/user/{user_id}/events'
+	},
+	out: function( out ) {
+		this.magic.end(JSON.stringify(out));
+	}
+}
+</pre>
+<p>Which leads me to &quot;magic&quot; by which I mean I need something like that to implement the functionality I need in Node.js but in a non-blocking way. The absolute requirements for this are for the scripts to be exactly as I&#039;ve presented them but the implementation of $api can be as complex as it needs to be to make this work.</p>
+<p>Can I use streamlinejs and if yes would you mind giving me some hints as to how?  Thanks in advance.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=602#respond' onclick='return addComment.moveForm("comment-602", "602", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment byuser comment-author-bjouhier bypostauthor odd alt depth-2 highlander-comment" id="li-comment-603">
+		<div id="comment-603">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5fae4fe6a889a91041bc556d50ccb2e3?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://bjouhier.wordpress.com' rel='external nofollow' class='url'>Bruno Jouhier</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-603">
+				October 28, 2012 at 13:15</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Hi Mike,</p>
+<p>Fibers should be able to solve your problem completely (on its supported platforms). </p>
+<p>Streamline.js can solve it but it requires a slight API change: you would need to add an <code>_</code> parameter to all async calls. So the code that consumes your API would become:</p>
+<pre>
+var friends = $api.GET(_, "friends",'12345');  // 12345 is a user ID.
+var newFriends = [];
+for(var i=0;i&lt;friends.length;i++){
+	newFriends[friends[i].ID] = friends[i].name;
+}
+$api.out(_, newFriends);
+</pre>
+<p>and the code that implements it would look like:</p>
+<pre>
+var streams = require('streamline/lib/streams/server/streams');
+var $api = {
+	req: null,
+	GET: function(_, resource,args) {
+		this.req = streams.httpRequest(self.applyArgs(self.resources['resource'],args));
+		return this.req.end().response(_).checkStatus(200).readAll(_);
+	},
+	applyArgs: function(template,args) {
+		return 'logic to apply args here';
+	},
+	resources: {
+		'friends' : 'http://api.example.com/user/{user_id}/friends',
+		'events' : 'http://api.example.com/user/{user_id}/events'
+	},
+	out: function(_, out) {
+		this.req.write(_, JSON.stringify(out)).end();
+	}
+}
+</pre>
+<p>Note that the proposed API is problematic because it uses a global (<code>$api.req</code>) to pass context between <code>GET</code> and <code>out</code>). This could be fixed by rewriting it as:</p>
+<pre>
+function API() {
+	var req;
+	this.GET = function(_, resource, args) {
+		req = streams.httpRequest(...);
+		return req.end().response(_)...;
+	}
+	...
+	this.out = function(_, out) {
+		req.write(_, JSON.stringify(out)).end();
+	}
+}
+</pre>
+<p>And you would consume it with <code>new API()</code> instead of <code>$api</code>.</p>
+<p>Unfortunately, streamline needs the extra <code>_</code> parameter because, unlike fibers, it does not use any C++ under the hood. So it cannot be quite as <em>magic</em>.</p>
+<p>Also, note that people who would be using your API would be writing streamline code (*). So the <code>var friends = $api.GET(...) ...</code> code would need to be placed in a file with the <code>._js</code> extension.</p>
+<p>(*) They could also use your API with plain JavaScript but then they would need to pass a real JavaScript callback (a <code>function(err, result) { ... }</code>) to all the async calls.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=603#respond' onclick='return addComment.moveForm("comment-603", "603", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment byuser comment-author-bjouhier bypostauthor even depth-3 highlander-comment" id="li-comment-605">
+		<div id="comment-605">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5fae4fe6a889a91041bc556d50ccb2e3?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://bjouhier.wordpress.com' rel='external nofollow' class='url'>Bruno Jouhier</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-605">
+				October 28, 2012 at 19:18</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Oops. I replied too quickly. The code that I gave is wrong because the <code>req.write</code> call cannot be made on the same request. If the <code>GET</code> and <code>out</code> calls are independent, your API style is ok.</p>
+<p>But the rest (use of <code>_</code> parameter and the <code>GET</code> implementation) is ok.</p>
+</div>
+
+			<div class="reply">
+							</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+	<li class="comment odd alt depth-3 highlander-comment" id="li-comment-606">
+		<div id="comment-606">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/81df87e0d3e269d6fa6a17c6914fd656?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://twitter.com/mikeschinkel' rel='external nofollow' class='url'>Mike Schinkel (@mikeschinkel)</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-606">
+				October 28, 2012 at 22:36</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Hi Bruno,</p>
+<p>Thanks for taking so much time to reply, I hadn&#8217;t expected it but hope it helps others.<br />
+Unfortunately the requirement for our script is that it not expose and implementation specifics to the script writer/user in part because we want to flexibility to host on other platforms than Node.js if any relevant ones emerge and in part because we want the least amount of learning required for people to be able to write scripts. So I guess we&#8217;ll have to continue to look for another solution.</p>
+<p>But thank again for explaining so much in depth.</p>
+<p>-Mike</p>
+</div>
+
+			<div class="reply">
+							</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+	<li class="comment byuser comment-author-bjouhier bypostauthor even thread-odd thread-alt depth-1 highlander-comment" id="li-comment-607">
+		<div id="comment-607">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5fae4fe6a889a91041bc556d50ccb2e3?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://bjouhier.wordpress.com' rel='external nofollow' class='url'>Bruno Jouhier</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-607">
+				October 29, 2012 at 19:44</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Hi Mike,</p>
+<p>If you want a sync style API your only choices are a) a coroutine extension to the JS runtime (fibers, ES6 yield) and b) a CPS transform (streamline.js, jscex, IcedCoffeeScript)</p>
+<p>And unfortunately, you&#8217;ll have to compromise somewhere. If you go with coroutines, you&#8217;ll have limitations on supported platforms. If you go with CPS, you&#8217;ll get portability (streamline.js runs browser side too) but you&#8217;ll need a preprocessor. No miracle here.</p>
+<p>Bruno</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=607#respond' onclick='return addComment.moveForm("comment-607", "607", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment odd alt depth-2 highlander-comment" id="li-comment-608">
+		<div id="comment-608">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/81df87e0d3e269d6fa6a17c6914fd656?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://twitter.com/mikeschinkel' rel='external nofollow' class='url'>Mike Schinkel (@mikeschinkel)</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-608">
+				October 29, 2012 at 20:27</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Hi Bruno,</p>
+<p>Thanks again for the detailed answer. </p>
+<p>I may be stuck with the default CPS style and wait for a better coroutine solution from the general node community, if ever. Default CPS is better for this use case than the CPS transform approach although I can see the latter would be a very good approach for many other use-cases.  </p>
+<p>Thanks again.</p>
+<p>-Mike</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=608#respond' onclick='return addComment.moveForm("comment-608", "608", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+	<li class="comment even thread-even depth-1 highlander-comment" id="li-comment-609">
+		<div id="comment-609">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/e02f697fcf6ac20b088c7386a6586d4c?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn">partridge</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-609">
+				October 30, 2012 at 11:27</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>You know what, people didn&#8217;t start using threads in the first instance, just for a laugh. They didn&#8217;t stand around saying &#8220;hoho, what we want here is clearly a needless increase in complexity, because our jobs are not challenging enough&#8221;.</p>
+<p>If you don&#8217;t need shared state, then you don&#8217;t have a problem, and it&#8217;s meaningless to speak of avoiding the pitfalls of threads. If you DO need shared state, then you are not going to avoid the pitfalls of threads if you want consistency.</p>
+<p>Perhaps you can make the abstractions easier to understand, but you can&#8217;t get shared state &#8220;for free&#8221;.</p>
+<p>It is no surprise to me that the node guys find themselves needing thread-like features, and it will be no surprise when they realise they need locking too.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=609#respond' onclick='return addComment.moveForm("comment-609", "609", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	<ul class="children">
+	<li class="comment byuser comment-author-bjouhier bypostauthor odd alt depth-2 highlander-comment" id="li-comment-610">
+		<div id="comment-610">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/5fae4fe6a889a91041bc556d50ccb2e3?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://bjouhier.wordpress.com' rel='external nofollow' class='url'>Bruno Jouhier</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-610">
+				October 30, 2012 at 22:50</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Problem is not shared state, it is is shared <em>mutable</em> state. </p>
+<p>Erlang, for example, has threads and shared <em>immutable</em> state, and message passing between threads (rather than locks).</p>
+<p>I&#8217;m ready to bet that node will <em>never</em> have classical threads with shared mutable state and locks. This would break node (and JavaScript)&#8217;s fundamentals. But TAGG may get some traction as it is better aligned on node&#8217;s model.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=610#respond' onclick='return addComment.moveForm("comment-610", "610", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+	<li class="comment byuser comment-author-bunkertor even thread-odd thread-alt depth-1 highlander-comment" id="li-comment-619">
+		<div id="comment-619">
+			<div class="comment-author vcard">
+				<img alt='' src='http://1.gravatar.com/avatar/d207dd9989acf6b7ba24c1afc4a835a2?s=40&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://agilemobiledeveloper.com' rel='external nofollow' class='url'>bunkertor</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-619">
+				January 26, 2013 at 04:01</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Reblogged this on <a href="http://agilemobiledeveloper.wordpress.com/2013/01/26/35/" rel="nofollow">Agile Mobile Developer</a>.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=619#respond' onclick='return addComment.moveForm("comment-619", "619", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+	<li class="post pingback">
+		<p>Pingback: <a href='http://www.blogosfera.co.uk/2013/02/how-to-run-code-using-node-js-fibers/' rel='external nofollow' class='url'>How to run code using Node.js Fibers | BlogoSfera</a></p>
+	</li><!-- #comment-## -->
+	<li class="comment byuser comment-author-snoopyxdy odd alt thread-even depth-1 highlander-comment" id="li-comment-1353">
+		<div id="comment-1353">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/ba5cfa8ed415cdd50b556a9482c696e9?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn">snoopyxdy</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-1353">
+				May 25, 2013 at 16:10</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Hi Bruno,very nice post!<br />
+The tagg module have not updated for one year.Recently I have fork that,and modify it to support windows, linux and mac.So I named it tagg2. tagg2 also using node-gyp and it support nodejs 0.8.x and 0.10.x.</p>
+<p>When I develop the tagg2, I find I can&#8217;t use nodejs api in the thread,and the object in main thread could not share to the thread.Because one v8 isolate only can let one thread to visit it, so I can&#8217;t using the thread to access the main thread&#8217;s js object.</p>
+<p>In order to solve the problem,I add the child process in to tagg2 module,it using the same api, and also add the process pool in tagg2 module.</p>
+<p>I feeling multi threads in nodejs are not useful because of the v8.Using the multi threads in libuv and write the thread worker code in C++ are more wiser.</p>
+<p>Welcome to have a try with tagg2.<br />
+npm install tagg2</p>
+<p>github url<br />
+<a href="https://github.com/DoubleSpout/node-threads-a-gogo2" rel="nofollow">https://github.com/DoubleSpout/node-threads-a-gogo2</a></p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=1353#respond' onclick='return addComment.moveForm("comment-1353", "1353", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+	<li class="post pingback">
+		<p>Pingback: <a href='http://romanysoft.com/blog/?p=99' rel='external nofollow' class='url'>nodejs多线程，真正的非阻塞 &raquo; Romanysoft</a></p>
+	</li><!-- #comment-## -->
+	<li class="comment even thread-odd thread-alt depth-1 highlander-comment" id="li-comment-4028">
+		<div id="comment-4028">
+			<div class="comment-author vcard">
+				<img alt='' src='http://2.gravatar.com/avatar/2d77dac9b768c1f5e134afda30314c07?s=40&amp;d=http%3A%2F%2F2.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G' class='avatar avatar-40' height='40' width='40' />				<cite class="fn"><a href='http://gravatar.com/jeskeca' rel='external nofollow' class='url'>jeskeca</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+			
+			<div class="comment-meta commentmetadata"><a href="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/#comment-4028">
+				July 16, 2013 at 06:40</a>			</div><!-- .comment-meta .commentmetadata -->
+
+			<div class="comment-body"><p>Be careful of using this &#8220;serializing&#8221; model for either futures or callback pyramids. </p>
+<p>Async I/O&#8217;s primary benefit in high performance general purpose web-serving is *not* to run multiple user-request per CPU-thread (see below), but to remove serialization in multiple backend IO calls without introducing tons of threads (and the stack-memory they would consume). You want to use callbacks or futures to issue all your non-dependent IO calls simultaneously, and only once they have all been issued do you wait for any of them to respond. The only time &#8220;pyramids&#8221; should exist is when many calls are serially dependent on each-other, and this should be kept to a minimum because it increases user-latency.</p>
+<p>For general purpose web-serving code, running many simultaneous requests cooperative/async on a single process/thread is not a good idea. Any CPU work in an async thread will *stall-all-other-tasks*.. which means if the code iterates over a big pile of database data for one user&#8217;s response, all other tasks on that thread/process will stall. If the server is something single purpose and highly tuned (like Jabber or SMTP) this won&#8217;t happen, but for general purpose web-code, don&#8217;t share processes with more than one user-request.</p>
+<p>The preferred web scalability model is to run one only one user-request worker per CPU-thread, and use a separate dedicated async I/O spooler process to deal with buffering the IO and freeing up those workers as fast as possible (independent of client-download-speed). How many of these CPU-thread workers are needed depends on the codebase, but it is most often an integer multiple of CPU cores .. like cpu_cores * {2-3}. Then, within each worker, care should be taken to use async I/O to issue as many *parallel* backend calls as possible, to make their latencies overlap instead of additive.</p>
+</div>
+
+			<div class="reply">
+				<a class='comment-reply-link' href='/2012/03/11/fibers-and-threads-in-node-js-what-for/?replytocom=4028#respond' onclick='return addComment.moveForm("comment-4028", "4028", "respond", "310")'>Reply</a>			</div><!-- .reply -->
+		</div><!-- #comment-##  -->
+
+	</li><!-- #comment-## -->
+			</ol>
+
+
+	
+
+								<div id="respond" class="comment-respond">
+				<h3 id="reply-title" class="comment-reply-title">Leave a Reply <small><a rel="nofollow" id="cancel-comment-reply-link" href="/2012/03/11/fibers-and-threads-in-node-js-what-for/#respond" style="display:none;">Cancel reply</a></small></h3>
+									<form action="http://bjouhier.wordpress.com/wp-comments-post.php" method="post" id="commentform" class="comment-form">
+																										
+
+
+												<input type="hidden" id="highlander_comment_nonce" name="highlander_comment_nonce" value="b0b1abc4f5" /><input type="hidden" name="_wp_http_referer" value="/2012/03/11/fibers-and-threads-in-node-js-what-for/" />
+<input type="hidden" name="hc_post_as" id="hc_post_as" value="guest" />
+
+<div class="comment-form-field comment-textarea">
+	<label for="comment">Enter your comment here...</label>
+	<div id="comment-form-comment"><textarea id="comment" name="comment" title="Enter your comment here..."></textarea></div>
+</div>
+
+<div id="comment-form-identity">
+
+	<div id="comment-form-nascar">
+		<p>Fill in your details below or click an icon to log in:</p>
+		<ul>
+			<li class="selected" style="display:none;">
+				<a href="#comment-form-guest" id="postas-guest" title="Guest">
+					<span></span>
+				</a>
+			</li>
+			<li>
+				<a href="#comment-form-load-service:WordPress.com" id="postas-wordpress" title="WordPress.com">
+					<span></span>
+				</a>
+			</li>
+			<li>
+				<a href="#comment-form-load-service:Twitter" id="postas-twitter" title="Twitter">
+					<span></span>
+				</a>
+			</li>
+			<li>
+				<a href="#comment-form-load-service:Facebook" id="postas-facebook" title="Facebook">
+					<span></span>
+				</a>
+			</li>
+			<li>
+			<iframe id="googleplus-sign-in" name="googleplus-sign-in" src="https://public-api.wordpress.com/connect/?googleplus-sign-in=1" width="24" height="24" scrolling="no" allowtransparency="true" seamless="seamless" frameborder="0"></iframe>
+			</li>
+		</ul>
+	</div>
+
+	<div id="comment-form-guest" class="comment-form-service selected">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+<a href="https://gravatar.com/site/signup/" target="_blank">				<img src="http://1.gravatar.com/avatar/ad516503a11cd5ca435acc9bb6523536?s=25" alt="Gravatar" width="25" class="no-grav" />
+</a>			</div>
+
+				<div class="comment-form-fields">
+				<div class="comment-form-field comment-form-email">
+					<label for="email">Email <span class="required">(required)</span> <span class="nopublish">(Address never made public)</span></label>
+					<div class="comment-form-input"><input id="email" name="email" type="email" value="" /></div>
+				</div>
+				<div class="comment-form-field comment-form-author">
+					<label for="author">Name <span class="required">(required)</span></label>
+					<div class="comment-form-input"><input id="author" name="author" type="text" value="" /></div>
+				</div>
+				<div class="comment-form-field comment-form-url">
+					<label for="url">Website</label>
+					<div class="comment-form-input"><input id="url" name="url" type="text" value="" /></div>
+				</div>
+			</div>
+	
+		</div>
+	</div>
+
+	<div id="comment-form-wordpress" class="comment-form-service">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+				<img src="http://s2.wp.com/wp-content/mu-plugins/highlander-comments/images/wplogo.png?m=1289230950g" alt="WordPress.com Logo" width="25" class="no-grav" />
+			</div>
+
+				<div class="comment-form-fields">
+				<input type="hidden" name="wp_avatar" id="wordpress-avatar" class="comment-meta-wordpress" value="" />
+				<input type="hidden" name="wp_user_id" id="wordpress-user_id" class="comment-meta-wordpress" value="" />
+				<input type="hidden" name="wp_access_token" id="wordpress-access_token" class="comment-meta-wordpress" value="" />
+				<p class="comment-form-posting-as pa-wordpress"><strong></strong> You are commenting using your WordPress.com account. <span class="comment-form-log-out">(&nbsp;<a href="javascript:HighlanderComments.doExternalLogout( 'wordpress' );">Log&nbsp;Out</a>&nbsp;/&nbsp;<a href="#" onclick="javascript:HighlanderComments.switchAccount();return false;">Change</a>&nbsp;)</span></p>
+			</div>
+	
+		</div>
+	</div>
+
+	<div id="comment-form-twitter" class="comment-form-service">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+				<img src="http://1.gravatar.com/avatar/ad516503a11cd5ca435acc9bb6523536?s=25" alt="Twitter picture" width="25" class="no-grav" />
+			</div>
+
+				<div class="comment-form-fields">
+				<input type="hidden" name="twitter_avatar" id="twitter-avatar" class="comment-meta-twitter" value="" />
+				<input type="hidden" name="twitter_user_id" id="twitter-user_id" class="comment-meta-twitter" value="" />
+				<input type="hidden" name="twitter_access_token" id="twitter-access_token" class="comment-meta-twitter" value="" />
+				<p class="comment-form-posting-as pa-twitter"><strong></strong> You are commenting using your Twitter account. <span class="comment-form-log-out">(&nbsp;<a href="javascript:HighlanderComments.doExternalLogout( 'twitter' );">Log&nbsp;Out</a>&nbsp;/&nbsp;<a href="#" onclick="javascript:HighlanderComments.switchAccount();return false;">Change</a>&nbsp;)</span></p>
+			</div>
+	
+		</div>
+	</div>
+
+	<div id="comment-form-facebook" class="comment-form-service">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+				<img src="http://1.gravatar.com/avatar/ad516503a11cd5ca435acc9bb6523536?s=25" alt="Facebook photo" width="25" class="no-grav" />
+			</div>
+
+				<div class="comment-form-fields">
+				<input type="hidden" name="fb_avatar" id="facebook-avatar" class="comment-meta-facebook" value="" />
+				<input type="hidden" name="fb_user_id" id="facebook-user_id" class="comment-meta-facebook" value="" />
+				<input type="hidden" name="fb_access_token" id="facebook-access_token" class="comment-meta-facebook" value="" />
+				<p class="comment-form-posting-as pa-facebook"><strong></strong> You are commenting using your Facebook account. <span class="comment-form-log-out">(&nbsp;<a href="javascript:HighlanderComments.doExternalLogout( 'facebook' );">Log&nbsp;Out</a>&nbsp;/&nbsp;<a href="#" onclick="javascript:HighlanderComments.switchAccount();return false;">Change</a>&nbsp;)</span></p>
+			</div>
+	
+		</div>
+	</div>
+
+	<div id="comment-form-googleplus" class="comment-form-service">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+				<img src="http://1.gravatar.com/avatar/ad516503a11cd5ca435acc9bb6523536?s=25" alt="Google+ photo" width="25" class="no-grav" />
+			</div>
+
+				<div class="comment-form-fields">
+				<input type="hidden" name="googleplus_avatar" id="googleplus-avatar" class="comment-meta-googleplus" value="" />
+				<input type="hidden" name="googleplus_user_id" id="googleplus-user_id" class="comment-meta-googleplus" value="" />
+				<input type="hidden" name="googleplus_access_token" id="googleplus-access_token" class="comment-meta-googleplus" value="" />
+				<p class="comment-form-posting-as pa-googleplus"><strong></strong> You are commenting using your Google+ account. <span class="comment-form-log-out">(&nbsp;<a href="javascript:HighlanderComments.doExternalLogout( 'googleplus' );">Log&nbsp;Out</a>&nbsp;/&nbsp;<a href="#" onclick="javascript:HighlanderComments.switchAccount();return false;">Change</a>&nbsp;)</span></p>
+			</div>
+	
+		</div>
+	</div>
+
+
+	<div id="comment-form-load-service" class="comment-form-service">
+		<div class="comment-form-posting-as-cancel"><a href="javascript:HighlanderComments.cancelExternalWindow();">Cancel</a></div>
+		<p>Connecting to %s</p>
+	</div>
+
+	
+</div>
+
+<script type="text/javascript">
+var highlander_expando_javascript = function(){
+	var input = document.createElement( 'input' ),
+	    comment = jQuery( '#comment' );
+
+	if ( 'placeholder' in input ) {
+		comment.attr( 'placeholder', jQuery( '.comment-textarea label' ).remove().text() );
+	}
+
+	// Expando Mode: start small, then auto-resize on first click + text length
+	jQuery( '#comment-form-identity' ).hide();
+	jQuery( '#comment-form-subscribe' ).hide();
+	jQuery( '#commentform .form-submit' ).hide();
+
+	comment.css( { 'height':'10px' } ).one( 'focus', function() {
+		var timer = setInterval( HighlanderComments.resizeCallback, 10 )
+		jQuery( this ).animate( { 'height': HighlanderComments.initialHeight } ).delay( 100 ).queue( function(n) { clearInterval( timer ); HighlanderComments.resizeCallback(); n(); } );
+		jQuery( '#comment-form-identity' ).slideDown();
+		jQuery( '#comment-form-subscribe' ).slideDown();
+		jQuery( '#commentform .form-submit' ).slideDown();
+	});
+}
+jQuery(document).ready( highlander_expando_javascript );
+</script>
+
+<div id="comment-form-subscribe">
+	<p class="comment-subscription-form"><input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" tabindex="6"/> <label class="subscribe-label" id="subscribe-label" for="subscribe" style="display: inline;">Notify me of follow-up comments via email.</label></p><p class="post-subscription-form"><input type="checkbox" name="subscribe_blog" id="subscribe_blog" value="subscribe" style="width: auto;" tabindex="7"/> <label class="subscribe-label" id="subscribe-blog-label" for="subscribe_blog"  style="display: inline;">Notify me of new posts via email.</label></p></div>
+
+												<p class="form-submit">
+							<input name="submit" type="submit" id="comment-submit" value="Post Comment" />
+							<input type='hidden' name='comment_post_ID' value='310' id='comment_post_ID' />
+<input type='hidden' name='comment_parent' id='comment_parent' value='0' />
+						</p>
+						
+<input type="hidden" name="genseq" value="1381842771" />
+<p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="73e5ff8268" /></p><script type='text/javascript' src='http://s2.wp.com/wp-content/mu-plugins/akismet-2.5/form.js?m=1308783962g'></script>
+<p style="display: none;"><input type="hidden" id="ak_js" name="ak_js" value="202"/></p>					</form>
+							</div><!-- #respond -->
+			<div style="clear: both"></div>
+</div><!-- #comments -->
+
+
+			</div><!-- #content -->
+		</div><!-- #container -->
+
+
+		<div id="primary" class="widget-area" role="complementary">
+						<ul class="xoxo">
+
+<li id="search-2" class="widget-container widget_search"><form role="search" method="get" id="searchform" class="searchform" action="http://bjouhier.wordpress.com/">
+				<div>
+					<label class="screen-reader-text" for="s">Search for:</label>
+					<input type="text" value="" name="s" id="s" />
+					<input type="submit" id="searchsubmit" value="Search" />
+				</div>
+			</form></li>		<li id="recent-posts-2" class="widget-container widget_recent_entries">		<h3 class="widget-title">Recent Posts</h3>		<ul>
+					<li>
+				<a href="http://bjouhier.wordpress.com/2013/06/01/bringing-asyncawait-to-life-in-javascript/" title="Bringing async/await to life in&nbsp;JavaScript">Bringing async/await to life in&nbsp;JavaScript</a>
+						</li>
+					<li>
+				<a href="http://bjouhier.wordpress.com/2013/05/11/harmony-generators-in-streamline-js/" title="Harmony Generators in&nbsp;streamline.js">Harmony Generators in&nbsp;streamline.js</a>
+						</li>
+					<li>
+				<a href="http://bjouhier.wordpress.com/2013/04/27/nodes-social-pariahs/" title="Node&#8217;s social&nbsp;pariahs">Node&#8217;s social&nbsp;pariahs</a>
+						</li>
+					<li>
+				<a href="http://bjouhier.wordpress.com/2012/07/04/node-js-stream-api-events-or-callbacks/" title="Node.js stream API: events or&nbsp;callbacks?">Node.js stream API: events or&nbsp;callbacks?</a>
+						</li>
+					<li>
+				<a href="http://bjouhier.wordpress.com/2012/07/01/node-js-for-the-rest-of-us/" title="node.js for the rest of&nbsp;us">node.js for the rest of&nbsp;us</a>
+						</li>
+				</ul>
+		</li><li id="linkcat-2008" class="widget-container widget_links"><h3 class="widget-title">Projects</h3>
+	<ul class='xoxo blogroll'>
+<li><a href="https://github.com/Sage/streamlinejs" rel="me" title="The GitHub repository for streamline.js">streamline.js</a></li>
+<li><a href="https://github.com/bjouhier/galaxy" rel="me">galaxy</a></li>
+
+	</ul>
+</li>
+<li id="archives-2" class="widget-container widget_archive"><h3 class="widget-title">Archives</h3>		<ul>
+			<li><a href='http://bjouhier.wordpress.com/2013/06/' title='June 2013'>June 2013</a></li>
+	<li><a href='http://bjouhier.wordpress.com/2013/05/' title='May 2013'>May 2013</a></li>
+	<li><a href='http://bjouhier.wordpress.com/2013/04/' title='April 2013'>April 2013</a></li>
+	<li><a href='http://bjouhier.wordpress.com/2012/07/' title='July 2012'>July 2012</a></li>
+	<li><a href='http://bjouhier.wordpress.com/2012/05/' title='May 2012'>May 2012</a></li>
+	<li><a href='http://bjouhier.wordpress.com/2012/04/' title='April 2012'>April 2012</a></li>
+	<li><a href='http://bjouhier.wordpress.com/2012/03/' title='March 2012'>March 2012</a></li>
+	<li><a href='http://bjouhier.wordpress.com/2011/05/' title='May 2011'>May 2011</a></li>
+	<li><a href='http://bjouhier.wordpress.com/2011/04/' title='April 2011'>April 2011</a></li>
+	<li><a href='http://bjouhier.wordpress.com/2011/01/' title='January 2011'>January 2011</a></li>
+	<li><a href='http://bjouhier.wordpress.com/2010/05/' title='May 2010'>May 2010</a></li>
+		</ul>
+</li><li id="categories-2" class="widget-container widget_categories"><h3 class="widget-title">Categories</h3>		<ul>
+	<li class="cat-item cat-item-17193614"><a href="http://bjouhier.wordpress.com/category/asynchronous-javascript/" title="View all posts filed under Asynchronous JavaScript">Asynchronous JavaScript</a>
+</li>
+	<li class="cat-item cat-item-36141008"><a href="http://bjouhier.wordpress.com/category/programming-conceptual/" title="View all posts filed under Programming &#8211; Conceptual">Programming &#8211; Conceptual</a>
+</li>
+	<li class="cat-item cat-item-1"><a href="http://bjouhier.wordpress.com/category/uncategorized/" title="View all posts filed under Uncategorized">Uncategorized</a>
+</li>
+		</ul>
+</li><li id="meta-2" class="widget-container widget_meta"><h3 class="widget-title">Meta</h3>			<ul>
+			<li><a href="http://wordpress.com/signup/?ref=wplogin">Register</a></li>			<li><a href="http://bjouhier.wordpress.com/wp-login.php">Log in</a></li>
+			<li><a href="http://bjouhier.wordpress.com/feed/" title="Syndicate this site using RSS 2.0">Entries <abbr title="Really Simple Syndication">RSS</abbr></a></li>
+			<li><a href="http://bjouhier.wordpress.com/comments/feed/" title="The latest comments to all posts in RSS">Comments <abbr title="Really Simple Syndication">RSS</abbr></a></li>
+			<li><a href="http://wordpress.com/" title="Powered by WordPress, state-of-the-art semantic personal publishing platform.">WordPress.com</a></li>						</ul>
+</li>			</ul>
+		</div><!-- #primary .widget-area -->
+
+	</div><!-- #main -->
+
+	<div id="footer" role="contentinfo">
+		<div id="colophon">
+
+
+
+			<div id="site-info">
+				<a href="http://bjouhier.wordpress.com/" title="Bruno&#039;s Ramblings" rel="home">
+					Bruno&#039;s Ramblings				</a>
+			</div><!-- #site-info -->
+
+			<div id="site-generator">
+				<a href="http://theme.wordpress.com/themes/twentyten/" title="Learn more about this theme">The Twenty Ten Theme</a>.				<a href="http://wordpress.com/?ref=footer" rel="generator">Blog at WordPress.com</a>.
+			</div><!-- #site-generator -->
+
+		</div><!-- #colophon -->
+	</div><!-- #footer -->
+
+</div><!-- #wrapper -->
+
+
+<script type="text/javascript">
+var _qevents = _qevents || [], wpcomQuantcastData = {"qacct":"p-18-mFEk4J448M","labels":",language.en,type.wpcom,as"};
+function wpcomQuantcastPixel( labels, options ) {
+	var i, defaults = wpcomQuantcastData, data = { event: 'ajax' };
+
+	labels  = labels  || '';
+	options = options || {};
+
+	if ( typeof labels != 'string' )
+		options = labels;
+
+	for ( i in defaults ) {
+		data[i] = defaults[i];
+	}
+
+	for ( i in options ) {
+		data[i] = options[i];
+	}
+
+	if ( data.labels ) {
+		data.labels += ',' + labels;
+	} else {
+		data.labels = labels;
+	}
+
+	_qevents.push( data );
+};
+(function() {var elem = document.createElement('script');elem.src = (document.location.protocol == "https:" ? "https://secure" : "http://edge") + ".quantserve.com/quant.js";elem.async = true;elem.type = "text/javascript";var scpt = document.getElementsByTagName('script')[0];scpt.parentNode.insertBefore(elem, scpt);  })();
+_qevents.push( wpcomQuantcastData );
+</script>
+<noscript><div style="display: none;"><img src="//pixel.quantserve.com/pixel/p-18-mFEk4J448M.gif?labels=%2Clanguage.en%2Ctype.wpcom%2Cas" height="1" width="1" alt="" /></div></noscript>
+
+<script type='text/javascript' src='//0.gravatar.com/js/gprofiles.js?ver=201342ae'></script>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var WPGroHo = {"my_hash":""};
+/* ]]> */
+</script>
+<script type='text/javascript' src='http://s2.wp.com/wp-content/mu-plugins/gravatar-hovercards/wpgroho.js?m=1380573781g'></script>
+
+	<script>
+		//initialize and attach hovercards to all gravatars
+		jQuery( document ).ready( function( $ ) {
+			Gravatar.profile_cb = function( hash, id ) {
+				WPGroHo.syncProfileData( hash, id );
+			};
+			Gravatar.my_hash = WPGroHo.my_hash;
+			Gravatar.init( 'body', '#wp-admin-bar-my-account' );
+		});
+	</script>
+
+		<div style="display:none">
+	<div class="grofile-hash-map-a4778624115865f171f0bc6ebf9a471b">
+	</div>
+	<div class="grofile-hash-map-bd9a86ce16b44e31611305306d144c68">
+	</div>
+	<div class="grofile-hash-map-5fae4fe6a889a91041bc556d50ccb2e3">
+	</div>
+	<div class="grofile-hash-map-c193b9e5822e9c38cb8cf0781fb04820">
+	</div>
+	<div class="grofile-hash-map-a610b1685f0d603d09e7c2ee1cb4eaec">
+	</div>
+	<div class="grofile-hash-map-5ff13e50a3a0826a6e57b35b71cea503">
+	</div>
+	<div class="grofile-hash-map-5bed5c28883cb3ba13b8241b06144451">
+	</div>
+	<div class="grofile-hash-map-01f7f8e100e1d7431d87a796104b9e34">
+	</div>
+	<div class="grofile-hash-map-a789cf72d97c13687b6755eca83052a1">
+	</div>
+	<div class="grofile-hash-map-1ed1bdb977df30b3550446e320e04c89">
+	</div>
+	<div class="grofile-hash-map-7cdf566c7314726d4c358ba98976e627">
+	</div>
+	<div class="grofile-hash-map-81df87e0d3e269d6fa6a17c6914fd656">
+	</div>
+	<div class="grofile-hash-map-e02f697fcf6ac20b088c7386a6586d4c">
+	</div>
+	<div class="grofile-hash-map-d207dd9989acf6b7ba24c1afc4a835a2">
+	</div>
+	<div class="grofile-hash-map-ba5cfa8ed415cdd50b556a9482c696e9">
+	</div>
+	<div class="grofile-hash-map-2d77dac9b768c1f5e134afda30314c07">
+	</div>
+	</div>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var HighlanderComments = {"loggingInText":"Logging In\u2026","submittingText":"Posting Comment\u2026","postCommentText":"Post Comment","connectingToText":"Connecting to %s","commentingAsText":"%1$s: You are commenting using your %2$s account.","logoutText":"Log Out","loginText":"Log In","connectURL":"http:\/\/bjouhier.wordpress.com\/public.api\/connect\/?action=request","logoutURL":"http:\/\/bjouhier.wordpress.com\/wp-login.php?action=logout&_wpnonce=6ecb7f3075","homeURL":"http:\/\/bjouhier.wordpress.com\/","postID":"310","gravDefault":"mystery","enterACommentError":"Please enter a comment","enterEmailError":"Please enter your email address here","invalidEmailError":"Invalid email address","enterAuthorError":"Please enter your name here","gravatarFromEmail":"This picture will show whenever you leave a comment. Click to customize it.","logInToExternalAccount":"Log in to use details from one of these accounts.","change":"Change","changeAccount":"Change Account","comment_registration":"","userIsLoggedIn":"","isJetpack":"0"};
+/* ]]> */
+</script>
+<script type='text/javascript' src='http://s1.wp.com/_static/??/wp-content/js/jquery/jquery.autoresize.js,/wp-content/mu-plugins/highlander-comments/script.js?m=1379020420j'></script>
+
+	<div id="bit" class="loggedout-follow-normal">
+		<a class="bsub" href="javascript:void(0)"><span id='bsub-text'>Follow</span></a>
+		<div id="bitsubscribe">
+
+					<h3><label for="loggedout-follow-field">Follow &ldquo;Bruno&#039;s Ramblings&rdquo;</label></h3>
+
+			<form action="https://subscribe.wordpress.com" method="post" accept-charset="utf-8" id="loggedout-follow">
+			<p>Get every new post delivered to your Inbox.</p>
+
+			<p id="loggedout-follow-error" style="display: none;"></p>
+
+			
+			<p><input type="email" name="email" style="width: 95%; padding: 1px 2px" value="Enter your email address" onfocus='this.value=(this.value=="Enter your email address") ? "" : this.value;' onblur='this.value=(this.value=="") ? "Enter email address" : this.value;'  id="loggedout-follow-field"/></p>
+
+			<input type="hidden" name="action" value="subscribe"/>
+			<input type="hidden" name="blog_id" value="13692204"/>
+			<input type="hidden" name="source" value="http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for/"/>
+			<input type="hidden" name="sub-type" value="loggedout-follow"/>
+
+			<input type="hidden" id="_wpnonce" name="_wpnonce" value="a8900acaf0" /><input type="hidden" name="_wp_http_referer" value="/2012/03/11/fibers-and-threads-in-node-js-what-for/" />
+			<p id='bsub-subscribe-button'><input type="submit" value="Sign me up" /></p>
+			</form>
+					<div id='bsub-credit'><a href="http://wordpress.com/signup/?ref=lof">Powered by WordPress.com</a></div>
+		</div><!-- #bitsubscribe -->
+	</div><!-- #bit -->
+
+	<script type="text/javascript">
+		WPCOM_sharing_counts = {"http:\/\/bjouhier.wordpress.com\/2012\/03\/11\/fibers-and-threads-in-node-js-what-for\/":310}	</script>
+	<div id="sharing_email" style="display: none;">
+		<form action="/2012/03/11/fibers-and-threads-in-node-js-what-for/" method="post">
+			<label for="target_email">Send to Email Address</label>
+			<input type="text" name="target_email" id="target_email" value="" />
+
+			
+				<label for="source_name">Your Name</label>
+				<input type="text" name="source_name" id="source_name" value="" />
+
+				<label for="source_email">Your Email Address</label>
+				<input type="text" name="source_email" id="source_email" value="" />
+
+			
+			<div class="recaptcha" id="sharing_recaptcha"></div><input type="hidden" name="recaptcha_public_key" id="recaptcha_public_key" value="6LcYW8MSAAAAADBAuEH9yaPcF7lWh11Iq62ZKtoo" />
+			<img style="float: right; display: none" class="loading" src="http://s2.wp.com/wp-content/mu-plugins/post-flair/sharing/images/loading.gif?m=1315610318g" alt="loading" width="16" height="16" />
+			<input type="submit" value="Send Email" class="sharing_send" />
+			<a href="#cancel" class="sharing_cancel">Cancel</a>
+
+			<div class="errors errors-1" style="display: none;">
+				Post was not sent - check your email addresses!			</div>
+
+			<div class="errors errors-2" style="display: none;">
+				Email check failed, please try again			</div>
+
+			<div class="errors errors-3" style="display: none;">
+				Sorry, your blog cannot share posts by email.			</div>
+		</form>
+	</div>
+		<script type="text/javascript">
+		jQuery(document).on( 'ready post-load', function(){
+			jQuery( 'a.share-facebook' ).on( 'click', function() {
+				window.open( jQuery(this).attr( 'href' ), 'wpcomfacebook', 'menubar=1,resizable=1,width=600,height=400' );
+				return false;
+			});
+		});
+		</script>
+				<script type="text/javascript">
+		jQuery(document).on( 'ready post-load', function(){
+			jQuery( 'a.share-linkedin' ).on( 'click', function() {
+				window.open( jQuery(this).attr( 'href' ), 'wpcomlinkedin', 'menubar=1,resizable=1,width=580,height=450' );
+				return false;
+			});
+		});
+		</script>
+				<script type="text/javascript">
+		jQuery(document).on( 'ready post-load', function(){
+			jQuery( 'a.share-twitter' ).on( 'click', function() {
+				window.open( jQuery(this).attr( 'href' ), 'wpcomtwitter', 'menubar=1,resizable=1,width=600,height=350' );
+				return false;
+			});
+		});
+		</script>
+				<iframe src='http://widgets.wp.com/likes/master.html?ver=20130620a#ver=20130620a&amp;mp6=1' scrolling='no' id='likes-master' name='likes-master' style='display:none;'></iframe>
+		<div id='likes-other-gravatars'><div class="likes-text"><span>%d</span> bloggers like this:</div><ul class="wpl-avatars sd-like-gravatars"></ul></div>
+		<script type="text/javascript">
+		//<![CDATA[
+			var jetpackLikesWidgetQueue = [];
+			var jetpackLikesMasterReady = false;
+
+			function JetpackLikespostMessage( message, target ) {
+				if ( "string" === typeof message ){
+					try{
+						message = JSON.parse( message );
+					}
+					catch(e) {
+						return;
+					}
+				}
+
+				pm( {
+					target: target,
+					type: 'likesMessage',
+					data: message,
+					origin: '*'
+				} );
+			}
+
+			function JetpackLikesMessageListener( event ) {
+				if ( "undefined" == typeof event.event )
+					return;
+
+				if ( 'masterReady' == event.event ) {
+					jQuery( document ).ready( function() {
+						jetpackLikesMasterReady = true;
+
+						var stylesData = {
+								event: 'injectStyles'
+						};
+
+						if ( jQuery( 'iframe.admin-bar-likes-widget' ).length > 0 ) {
+							JetpackLikespostMessage( { event: 'adminBarEnabled' }, window.frames[ 'likes-master' ] );
+
+							stylesData.adminBarStyles = {
+								background: jQuery( '#wpadminbar .quicklinks li#wp-admin-bar-wpl-like > a' ).css( 'background' )
+							};
+						}
+
+						if ( !window.addEventListener )
+							jQuery( '#wp-admin-bar-admin-bar-likes-widget' ).hide();
+
+						stylesData.textStyles = {
+							color: jQuery( '.sd-text-color').css( 'color' ),
+							fontFamily: jQuery( '.sd-text-color' ).css( 'font-family' ),
+							fontSize: jQuery( '.sd-text-color' ).css( 'font-size' ),
+							direction: jQuery( '.sd-text-color' ).css( 'direction' ),
+							fontWeight: jQuery( '.sd-text-color' ).css( 'font-weight' ),
+							fontStyle: jQuery( '.sd-text-color' ).css( 'font-style' ),
+							textDecoration: jQuery( '.sd-text-color' ).css('text-decoration')
+						};
+
+						stylesData.linkStyles = {
+							color: jQuery( '.sd-link-color' ).css('color'),
+							fontFamily: jQuery( '.sd-link-color' ).css('font-family'),
+							fontSize: jQuery( '.sd-link-color' ).css('font-size'),
+							textDecoration: jQuery( '.sd-link-color' ).css('text-decoration'),
+							fontWeight: jQuery( '.sd-link-color' ).css( 'font-weight' ),
+							fontStyle: jQuery( '.sd-link-color' ).css( 'font-style' )
+						};
+
+						JetpackLikespostMessage( stylesData, window.frames[ 'likes-master' ] );
+
+						var requests = [];
+						jQuery( '.jetpack-likes-widget-wrapper' ).each( function( i ) {
+							var regex = /like-(post|comment)-wrapper-(\d+)-(\d+)-(\w+)/;
+							var match = regex.exec( this.id );
+							if ( ! match || match.length != 5 )
+								return;
+
+							var info = {
+								blog_id: match[2],
+								width:   this.width
+							};
+
+							if ( 'post' == match[1] ) {
+								info.post_id = match[3];
+							} else if ( 'comment' == match[1] ) {
+								info.comment_id = match[3];
+							}
+
+							info.obj_id = match[4];
+
+							requests.push( info );
+						});
+
+						JetpackLikespostMessage( { event: 'initialBatch', requests: requests }, window.frames['likes-master'] );
+
+						jQuery( document ).on( 'inview', 'div.jetpack-likes-widget-unloaded', function() {
+							jetpackLikesWidgetQueue.push( this.id );
+						});
+					});
+				}
+
+				if ( 'showLikeWidget' == event.event ) {
+					jQuery( '#' + event.id + ' .post-likes-widget-placeholder'  ).fadeOut( 'fast', function() {
+						jQuery( '#' + event.id + ' .post-likes-widget' ).fadeIn( 'fast', function() {
+							JetpackLikespostMessage( { event: 'likeWidgetDisplayed', blog_id: event.blog_id, post_id: event.post_id, obj_id: event.obj_id }, window.frames['likes-master'] );
+						});
+					});
+				}
+
+				if ( 'showOtherGravatars' == event.event ) {
+					var $container = jQuery( '#likes-other-gravatars' );
+					var $list = $container.find( 'ul' );
+
+					$container.hide();
+					$list.html( '' );
+
+					$container.find( '.likes-text span' ).text( event.total );
+
+					jQuery.each( event.likers, function( i, liker ) {
+						$list.append( '<li class="' + liker.css_class + '"><a href="' + liker.profile_URL + '" class="wpl-liker" rel="nofollow" target="_parent"><img src="' + liker.avatar_URL + '" alt="' + liker.name + '" width="30" height="30" style="padding-right: 3px;" /></a></li>');
+					} );
+
+					var offset = jQuery( "[name='" + event.parent + "']" ).offset();
+
+					$container.css( 'left', offset.left + event.position.left - 10 + 'px' );
+					$container.css( 'top', offset.top + event.position.top - 33 + 'px' );
+
+					var rowLength = Math.floor( event.width / 37 );
+					var height = ( Math.ceil( event.likers.length / rowLength ) * 37 ) + 13;
+					if ( height > 204 ) {
+						height = 204;
+					}
+
+					$container.css( 'height', height + 'px' );
+					$container.css( 'width', rowLength * 37 - 7 + 'px' );
+
+					$list.css( 'width', rowLength * 37 + 'px' );
+
+					$container.fadeIn( 'slow' );
+
+					var scrollbarWidth = $list[0].offsetWidth - $list[0].clientWidth;
+					if ( scrollbarWidth > 0 ) {
+						$container.width( $container.width() + scrollbarWidth );
+						$list.width( $list.width() + scrollbarWidth );
+					}
+				}
+			}
+
+			pm.bind( 'likesMessage', function(e) { JetpackLikesMessageListener(e); } );
+
+			jQuery( document ).click( function( e ) {
+				var $container = jQuery( '#likes-other-gravatars' );
+
+				if ( $container.has( e.target ).length === 0 ) {
+					$container.fadeOut( 'slow' );
+				}
+			});
+
+			function JetpackLikesWidgetQueueHandler() {
+				var wrapperID;
+				if ( ! jetpackLikesMasterReady ) {
+					setTimeout( JetpackLikesWidgetQueueHandler, 500 );
+					return;
+				}
+
+				if ( jetpackLikesWidgetQueue.length > 0 ) {
+					// We may have a widget that needs creating now
+					var found = false;
+					while( jetpackLikesWidgetQueue.length > 0 ) {
+						// Grab the first member of the queue that isn't already loading.
+						wrapperID = jetpackLikesWidgetQueue.splice( 0, 1 )[0];
+						if ( jQuery( '#' + wrapperID ).hasClass( 'jetpack-likes-widget-unloaded' ) ) {
+							found = true;
+							break;
+						}
+					}
+					if ( ! found ) {
+						setTimeout( JetpackLikesWidgetQueueHandler, 500 );
+						return;
+					}
+				} else if ( jQuery( 'div.jetpack-likes-widget-unloaded' ).length > 0 ) {
+					// Get the next unloaded widget
+					wrapperID = jQuery( 'div.jetpack-likes-widget-unloaded' ).first()[0].id;
+					if ( ! wrapperID ) {
+						// Everything is currently loaded
+						setTimeout( JetpackLikesWidgetQueueHandler, 500 );
+						return;
+					}
+				}
+
+				if ( 'undefined' === typeof wrapperID ) {
+					setTimeout( JetpackLikesWidgetQueueHandler, 500 );
+					return;
+				}
+
+				var $wrapper = jQuery( '#' + wrapperID );
+				$wrapper.find( 'iframe' ).remove();
+
+				if ( $wrapper.hasClass( 'slim-likes-widget' ) ) {
+					$wrapper.find( '.post-likes-widget-placeholder' ).after( "<iframe class='post-likes-widget jetpack-likes-widget' name='" + $wrapper.data( 'name' ) + "' height='22px' width='68px' frameBorder='0' scrolling='no' src='" + $wrapper.data( 'src' ) + "'></iframe>" );
+				} else {
+					$wrapper.find( '.post-likes-widget-placeholder' ).after( "<iframe class='post-likes-widget jetpack-likes-widget' name='" + $wrapper.data( 'name' ) + "' height='55px' width='100%' frameBorder='0' src='" + $wrapper.data( 'src' ) + "'></iframe>" );
+				}
+
+				$wrapper.removeClass( 'jetpack-likes-widget-unloaded' ).addClass( 'jetpack-likes-widget-loading' );
+
+				$wrapper.find( 'iframe' ).load( function( e ) {
+					var $iframe = jQuery( e.target );
+					$wrapper.removeClass( 'jetpack-likes-widget-loading' ).addClass( 'jetpack-likes-widget-loaded' );
+
+					JetpackLikespostMessage( { event: 'loadLikeWidget', name: $iframe.attr( 'name' ), width: $iframe.width() }, window.frames[ 'likes-master' ] );
+
+					if ( $wrapper.hasClass( 'slim-likes-widget' ) ) {
+						$wrapper.find( 'iframe' ).Jetpack( 'resizeable' );
+					}
+				});
+				setTimeout( JetpackLikesWidgetQueueHandler, 250 );
+			}
+			JetpackLikesWidgetQueueHandler();
+		//]]>
+		</script>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var recaptcha_options = {"lang":"en"};
+/* ]]> */
+</script>
+<script type='text/javascript' src='http://s2.wp.com/_static/??/wp-content/js/devicepx.js,/wp-content/mu-plugins/post-flair/sharing/sharing.js?m=1373391538j'></script>
+<script type="text/javascript">
+// <![CDATA[
+(function() {
+try{
+  if ( window.external &&'msIsSiteMode' in window.external) {
+    if (window.external.msIsSiteMode()) {
+      var jl = document.createElement('script');
+      jl.type='text/javascript';
+      jl.async=true;
+      jl.src='/wp-content/plugins/ie-sitemode/custom-jumplist.php';
+      var s = document.getElementsByTagName('script')[0];
+      s.parentNode.insertBefore(jl, s);
+    }
+  }
+}catch(e){}
+})();
+// ]]>
+</script><script src="http://s.stats.wordpress.com/w.js?21" type="text/javascript"></script>
+<script type="text/javascript">
+st_go({'blog':'13692204','v':'wpcom','tz':'2','user_id':'0','post':'310','subd':'bjouhier'});
+ex_go({'crypt':'UE5XaGUuOTlwaD85flAmcm1mcmZsaDhkV11YdWFnNncxc1tjZG9XVXhRVz1bVXJlWWRQcV0tS0JbTXJxNVVUT0NCeDg2dFpiV21KZmRoWFJfZzhBaStPZGx3ejlrTlQtQS5xTEpzWVlkMmVDWUJQanVtSFJ3TFRCYi5zPVVHL35Td3Zjb1hJT2tDR3JLYmxGLjFTLURDUHlJcWw3VV8zZnUuQkNBY09UNTAsWlUtTVN1XXJnYy1Ib3RtYUhMMldTbjlGS1tKMkFHbj9Ld1lvLzY9Nl9IQU8zRVY9NHlDQ0QsWCZ0Sl1wQ1kvQS42MUlHYnI/b2cxMFBVT1ZyRlUsRTA1NWoxMzNUVC5mPzh5Q1BC'});
+addLoadEvent(function(){linktracker_init('13692204',310);});
+	</script>
+<noscript><img src="http://stats.wordpress.com/b.gif?v=noscript" style="height:0px;width:0px;overflow:hidden" alt="" /></noscript>
+<script>
+if ( 'object' === typeof wpcom_mobile_user_agent_info ) {
+
+	wpcom_mobile_user_agent_info.init();
+	var mobileStatsQueryString = "";
+	
+	if( false !== wpcom_mobile_user_agent_info.matchedPlatformName )
+		mobileStatsQueryString += "&x_" + 'mobile_platforms' + '=' + wpcom_mobile_user_agent_info.matchedPlatformName;
+	
+	if( false !== wpcom_mobile_user_agent_info.matchedUserAgentName )
+		mobileStatsQueryString += "&x_" + 'mobile_devices' + '=' + wpcom_mobile_user_agent_info.matchedUserAgentName;
+	
+	if( wpcom_mobile_user_agent_info.isIPad() )
+		mobileStatsQueryString += "&x_" + 'ipad_views' + '=' + 'views';
+
+	if( "" != mobileStatsQueryString ) {
+		new Image().src = document.location.protocol + '//stats.wordpress.com/g.gif?v=wpcom-no-pv' + mobileStatsQueryString + '&baba=' + Math.random();
+	}
+	
+}
+</script></body>
+</html>
