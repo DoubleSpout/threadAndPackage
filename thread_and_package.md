@@ -375,14 +375,86 @@ Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他�
             process.exit();//收到kill信息，自杀进程
     });
 
+我们先定义函数`fibo`用来计算斐波那契数组，然后监听了主线程发来的消息，计算完毕之后将结果`send`到主线程。同时还监听process的`SIGHUP`事件，触发此事件就自杀进程。
 
+这里我们有一点需要注意，主线程的`kill`方法并不是真的使子进程退出，而会触发子进程的`SIGHUP`事件，真正的退出还是靠执行`process.exit();`。
+
+下面我们还是用`ab` 命令测试一下多进程方案的处理性能和用户请求延迟，测试环境和用例不变，还是100个并发100次请求计算斐波那切数组第35位:
+
+######压力测试结果
 
 
 ###换一种思路
+使用`child_process`模块的`fork`方法确实可以让我们很好的解决单线程对cpu密集型任务的阻塞问题，同时又没有tagg2模块那样无法使用Node.js核心api的限制。
 
+但是如果我的worker具有多样性，每次在利用`child_process`模块解决问题时都需要去创建一个`worker.js`的工作函数文件，有点麻烦。我们是不是可以更加简单一些呢？
+
+在我们启动Node.js程序时，`node`命令可以带上`-e`这个参数，它将直接执行`-e`后面的字符串，如下代码就将打印出`hello world`。
+
+    node -e "console.log('hello world')"
+
+合理的利用这个特性我们就可以免去每次都创建一个文件的麻烦了
+
+    var express = require('express');
+    var spawn = require('child_process').spawn;
+    var app = express();
+    var spawn_worker = function(n,end){
+        var fibo = function fibo (n) {
+          return n > 1 ? fibo(n - 1) + fibo(n - 2) : 1;
+        }
+        end(fibo(n));
+      }
+    var spawn_end = function(result){
+        console.log(result);
+        process.exit();
+    }
+    app.get('/', function(req, res){
+      var n = ~~req.query.n || 1;
+      var spawn_cmd = '('+spawn_worker.toString()+'('+n+','+spawn_end.toString()+'));'
+      console.log(spawn_cmd);//注意这个打印结果
+      var worker = spawn('node',['-e',spawn_cmd]);
+      var fibo_res = ''
+      worker.stdout.on('data', function (data) {
+          fibo_res += data.toString();
+      });
+      worker.on('close', function (code) {
+          res.send(fibo_res);
+      });
+    });
+    app.listen(8124);
+
+代码很简单，我们主要关注3个地方。
+
+第一、我们定义了`spawn_worker`函数，他其实就是将会在`-e`后面执行的工作函数，所以我们把计算斐波那契数组的算法函数定义其内，它接收2个参数，第一个参数n表示客户请求要求计算的斐波那契数组位数，第二个end参数是一个函数，如果计算完毕执行end，将结果传回主线程；
+
+第二、我们拼接了`-e`参数之后的字符串变量`spawn_cmd`，真正当Node.js脚步执行的字符串其实就是`spawn_cmd`，他的内容我们在运行之后的打印信息一看就能明白了；
+
+第三、我们利用`child_process`的`spawn`方法，类似在命令行里执行了`node -e "js code"`，启动Node.js工作子进程，同时监听子进程的标准输出，将数据保存起来，当子进程退出之后把结果响应给用户。
+
+现在主要的焦点就是变量`spawn_cmd`到底保存了什么，我们打开浏览器在地址栏里输入：
+
+    http://127.0.0.1:8124/?n=35
+
+下面就是程序运行之后的打印信息，
+
+    (function (n,end){
+        var fibo = function fibo (n) {
+          return n > 1 ? fibo(n - 1) + fibo(n - 2) : 1;
+        }
+        end(fibo(n));
+      }(35,function (result){
+          console.log(result);
+          process.exit();
+    }));
+
+对于子进程的工作函数的两个参数n和end我们现在一目了然了，`n`代表着用户请求的参数，期望获得的斐波那契数组的位数，而`end`参数则是一个匿名函数，在标准输出中打印计算结果然后自杀进程。
+
+`node -e`命令虽然可以减少创建文件的麻烦，但同时它也有命令行长度的限制，这个值各个系统都不相同，我们通过命令`getconf ARG_MAX`来获得最大命令长度，例如：`MAC OSX`下是`262,144 byte`而我的`linux`虚拟机则是`131072 byte`。
 
 ##多进程和多线程
+大部分多线程解决cpu密集型任务的方案都可以用我们之前讨论的多进程方案来替代，但是有一些比较特殊的场景多线程的优势就发挥出来了，下面就拿我们最常见的http web服务器响应一个小的静态文件作为例子。
 
+##总结
 
 
 #发布一个package
