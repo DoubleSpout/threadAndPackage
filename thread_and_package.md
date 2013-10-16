@@ -46,13 +46,27 @@ Node.js的模型：
     | REQUEST | | REQUEST | | REQUEST | 
     +---------+ +---------+ +---------+
 
-所以你在编写Node.js代码时要保持清醒的头脑，任何一个隐藏着的异常被触发后，都会将整个Node.js进程崩溃。当然这也为我们编写代码带来便利，比如同样要实现一个简单的网站访问次数统计，Node.js只需要在内存里定义一个`var count=0;`变量，每次有用户请求过来执行`count++;`即可。
+所以你在编写Node.js代码时要保持清醒的头脑，任何一个隐藏着的异常被触发后，都会将整个Node.js进程崩溃。当然这也为我们编写代码带来便利，比如同样要实现一个简单的网站访问次数统计，Node.js只需要在内存里定义一个变量`var count=0;`，每次有用户请求过来执行`count++;`即可。
 
-###相关代码相关代码相关代码相关代码
+    var http = require('http');
+    var count = 0;
+    http.createServer(function (request, response) {
+      response.writeHead(200, {'Content-Type': 'text/plain'});
+      response.end((++count).toString())
+    }).listen(8124);
+    console.log('Server running at http://127.0.0.1:8124/');
 
 但是对于PHP来说就需要使用第三方媒介来存储这个`count`值了，比如创建一个`count.txt`文件来保存网站的访问次数。
 
-###相关代码相关代码相关代码相关代码
+    <?php
+    $counter_file = ("count.txt");
+    $visits = file($counter_file);
+    $visits[0]++;
+    $fp = fopen($counter_file,"w");
+    fputs($fp,"$visits[0]");
+    fclose($fp);
+    echo "$visits[0]";
+    ?>
 
 ##单线程的js
 Google的V8 Javascript引擎已经在Chrome浏览器里证明了它的性能，所以Node.js的作者Ryan Dahl选择了v8作为Node.js的执行引擎，v8赋予Node.js高效的性能同时也注定了Node.js和和大名鼎鼎Nginx一样，都是以单线程作为基础的，而且这样正是作者Ryan Dahl设计Node.js的初衷。
@@ -133,21 +147,22 @@ Node.js是单线程的，但是它如何做到I/O的异步和非阻塞的呢？�
 Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他硬是利用phread库和C语言让Node.js支持了多线程的开发，我们看一下tagg模块的简单示例：
     
     var Threads = require('threads_a_gogo');
-    var t = Threads.create();
     function fibo(n) {
         return n > 1 ? fibo(n - 1) + fibo(n - 2) : 1;
     }
-    t.eval('fibo(40)', function(err, result) {//将fibo(40)丢入子线程运行
+    var t = Threads.create().eval(fibo);
+    t.eval('fibo(35)', function(err, result) {//将fibo(35)丢入子线程运行
         if (err) throw err; //线程创建失败
-        console.log('fibo(40)=' + result);//打印fibo执行40次的结果
+        console.log('fibo(35)=' + result);//打印fibo执行35次的结果
     });
     console.log('not block');//打印信息了，表示没有阻塞
 
-上面这段代码利用tagg模块将`fibo(40)`这个计算丢入了子线程中进行，保证了Node.js主线程的舒畅，当子线程任务执行完毕将会执行主线程的回调函数，将结果打印到屏幕，执行结果如下：
+上面这段代码利用tagg模块将`fibo(35)`这个计算丢入了子线程中进行，保证了Node.js主线程的舒畅，当子线程任务执行完毕将会执行主线程的回调函数，将结果打印到屏幕，执行结果如下：
 
-##执行结果
+    not block
+    fibo(35)=14930352
 
-由于tagg模块目前只能在linux下安装运行，所以我fork了一个分支，修改了部分tagg模块的代码，发布了tagg2模块。tagg2模块同样具有tagg模块的多线程功能，同时它跨平台支持，mac，linux，windows都可以编译安装，对开发人员的api也更加友好。安装方法很简单，直接`npm install tagg2`。
+由于tagg模块目前只能在linux下安装运行，所以我fork了一个分支，修改了部分tagg模块的代码，发布了tagg2模块。tagg2模块同样具有tagg模块的多线程功能，采用新的node-gyp命令进行编译，同时它跨平台支持，mac，linux，windows都可以编译安装，对开发人员的api也更加友好。安装方法很简单，直接`npm install tagg2`。
 
 一个利用tagg2计算斐波那契数组的http服务器代码：
 
@@ -171,20 +186,60 @@ Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他�
         })
     });
     app.listen(8124);
+    console.log('listen on 8124');
 
 我们利用express框架搭建了一个web服务器，根据用户发送请求参数`n`的值来创建子线程计算斐波那契数组，当子线程计算完毕之后将结果响应给客户端。由于计算是丢入子线程中运行的，所以整个主线程的不会被阻塞还是能够继续处理新的来源过来。
 
-我们利用apache的http压力测试工具`ab`来进行一次简单的压力测试，看看执行斐波那契数组40次，100并发100个请求，我们的`QPS`每秒处理任务数在多少个。
+我们利用apache的http压力测试工具`ab`来进行一次简单的压力测试，看看执行斐波那契数组35次，100客户端并发100个请求，我们的`QPS (Query Per Second)`每秒查询率在多少。
 
 我们的测试硬件：linux 2.6.4 4cpu 8G 64bit，网络环境内网。
 
 `ab`命令：
 
-    ab -c 100 -n 100 http://192.168.28.5/?n=40
+    ab -c 100 -n 100 http://192.168.28.5/?n=35
 
 压力测试结果：
 
-##压力测试结果压力测试结果压力测试结果压力测试结果
+    Server Software:        
+    Server Hostname:        192.168.28.5
+    Server Port:            8124
+    
+    Document Path:          /?n=35
+    Document Length:        8 bytes
+    
+    Concurrency Level:      100
+    Time taken for tests:   5.606 seconds
+    Complete requests:      100
+    Failed requests:        0
+    Write errors:           0
+    Total transferred:      10600 bytes
+    HTML transferred:       800 bytes
+    Requests per second:    17.84 [#/sec](mean)
+    Time per request:       5605.769 [ms](mean)
+    Time per request:       56.058 [ms](mean, across all concurrent requests)
+    Transfer rate:          1.85 [Kbytes/sec] received
+
+    Connection Times (ms)
+                  min  mean[+/-sd] median   max
+    Connect:        3    4   0.8      4       6
+    Processing:   455 5367 599.7   5526    5598
+    Waiting:      454 5367 599.7   5526    5598
+    Total:        461 5372 599.3   5531    5602
+
+    Percentage of the requests served within a certain time (ms)
+      50%   5531
+      66%   5565
+      75%   5577
+      80%   5581
+      90%   5592
+      95%   5597
+      98%   5600
+      99%   5602
+     100%   5602 (longest request)
+
+我们可以看到`Requests per second`表示每秒我们服务器处理的任务数量，这里是`17.84`。第二个我们比较关心的是两个`Time per request`结果，上面一行`Time per request:5605.769 [ms](mean)`表示当前这个并发量下处理每组请求的时间，而下面这个`Time per request:56.058 [ms](mean, across all concurrent requests)`表示每个用户平均处理时间，因为我们本次测试并发是100，所以结果正好是上一行的100分之1。得出本次测试平均每个用户请求的平均等待时间为`56.058 [ms]`。
+
+另外我们我们看下最后带有百分比的那个列表，它表示在一定时间内服务的请求的百分比。通过上面这个列表我们可以看到50%的用户我是在`5531 ms`以内返回的，最慢的也不过`5602 ms`，响应延迟非常的平均。
 
 我们如果用cluster来启动4个进程，是否可以充分利用cpu达到tagg2那样的`QPS`呢？我们在同样的网络环境和测试机上运行如下代码：
 
@@ -217,12 +272,51 @@ Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他�
 
 我们成功启动了4个cluster之后，用同样的`ab`压力测试命令对8124端口进行测试，结果如下：
 
-##压力测试结果压力测试结果压力测试结果压力测试结果
+    Server Software:        
+    Server Hostname:        192.168.28.5
+    Server Port:            8124
+    
+    Document Path:          /?n=35
+    Document Length:        8 bytes
+    
+    Concurrency Level:      100
+    Time taken for tests:   10.509 seconds
+    Complete requests:      100
+    Failed requests:        0
+    Write errors:           0
+    Total transferred:      16500 bytes
+    HTML transferred:       800 bytes
+    Requests per second:    9.52 [#/sec](mean)
+    Time per request:       10508.755 [ms](mean)
+    Time per request:       105.088 [ms](mean, across all concurrent requests)
+    Transfer rate:          1.53 [Kbytes/sec] received
 
+    Connection Times (ms)
+                  min  mean[+/-sd] median   max
+    Connect:        4    5   0.4      5       6
+    Processing:   336 3539 2639.8   2929   10499
+    Waiting:      335 3539 2639.9   2929   10499
+    Total:        340 3544 2640.0   2934   10504
+    
+    Percentage of the requests served within a certain time (ms)
+      50%   2934
+      66%   3763
+      75%   4527
+      80%   5153
+      90%   8261
+      95%   9719
+      98%  10308
+      99%  10504
+     100%  10504 (longest request)
 
+通过和上面tagg2模块的测试结果进行对比，我们发现了很大的区别，首先我们每秒处理的任务数从`17.84 [#/sec]`下降到了`9.52 [#/sec]`，这个指标说明了我们web服务器整体的吞吐率下降了。同时每个用户请求的平均等待时间也从`56.058 [ms]`提高到了`105.088 [ms]`，每个用户请求的平均等待时间也更长了。
 
+最后我们看下带有百分比的那张表，发现用户请求处理的时长非常的不均匀，50%的用户在`2934 ms`内返回了，最慢的等待达到了`10504 ms`。产生这种情况的主要原因就在于虽然我们使用了cluster启动了4个Node.js进程用来处理用户请求，但是对于每个Node.js进程来说还是单线程的，所以当有4个用户跑满了4个Node.js的cluster进程之后新进来的用户请求就只能等待了，最后造成了先到的用户处理时间短，后到的用户请求处理时间比较长。
 
 ###v8引擎
+大家看到这里是不是开始心潮澎湃，感觉js一统江湖的时代来了，单线程异步非阻塞的模型可以胜任大并发同时开发也非常高效，多线程下的js可以承担cpu密集型任务，不会造成主线程阻塞而引起的性能问题。
+
+但是，是时候对我们泼一盆冷水，清醒一下了。
 
 ###libuv
 
@@ -238,7 +332,7 @@ Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他�
 ###改善webworker
 
 
-#发布package
+#发布一个package
 
 
 ##package解决的问题
