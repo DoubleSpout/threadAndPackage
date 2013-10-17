@@ -496,11 +496,184 @@ Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他�
 3、然后判断文件的`MIME`类型，如果是类似`html`，`js`，`css`等静态资源，还需要`gzip`压缩之后传输给客户端
 4、最后将gzip压缩完成的静态文件响应给客户端。
 
+下面是一个正常成功的静态资源无缓存流程图：
 
+    +----+----+ 
+    | 客户端  | 
+    +----+----+
+         | (1)用户请求静态资源，进行路由匹配   
+    +----+----+ 
+    | Node.js | 
+    +----+----+
+         | (2)fs.stat 获取文件状态，完成后回调Node.js
+    +----+----+ 
+    | Node.js | 
+    +----+----+
+         | (3)fs.read 获取文件内容，完成后回调Node.js
+    +----+----+ 
+    | Node.js | 
+    +----+----+
+         | (4)zlib.Gzip 将文件内容压缩，完成后回调Node.js
+    +----+----+ 
+    | Node.js | 
+    +----+----+
+         | (5)静态资源响应给客户端
+    +----+----+ 
+    | 客户端  | 
+    +----+----+
 
+这个流程中的`(2)`，`(3)`，`(4)`步中都经历了从js到c++ ，打开和释放文件，还有调用了`zlib`库的`gzip`算法，其中每个异步的算法都会有创建和销毁线程的开销，所以这样也是大家诟病Node.js处理静态文件不给力的原因之一。
+
+为了改善这个问题，我之前有利用`libuv`库开发了一个改善Node.js的http/https处理静态文件的模块，名为`ifile`，`ifile`模块之所以可以加速Node.js的静态文件处理性能，主要是减少了js和c++的互相调用，以及频繁的创建和销毁线程的开销，下图是`ifile`模块处理一个静态无缓存资源的流程图：
+
+    +----+----+ 
+    | 客户端  | 
+    +----+----+
+         | (1)用户请求静态资源   
+    +----+----+ 
+    | Node.js | 
+    +----+----+
+         | (2)将req和res对象直接丢给ifile处理
+    +----+----+ 
+    |c++主线程| 
+    +----+----+
+         | (3)创建工作子线程
+    +----+----+ 
+    |c++子线程| 
+    +----+----+
+         | (4)匹配路由，文件状态，读取文件，gzip压缩，完成之后回调c++主线程
+    +----+----+ 
+    |c++主线程| 
+    +----+----+
+         | (5)静态资源响应给客户端
+    +----+----+ 
+    | 客户端  | 
+    +----+----+
+
+由于全部工作都是在`libuv`的子线程中执行的，所以Node.js主线程不会阻塞，当然性能也会大幅提升了，使用`ifile`模块也非常简单，它能够和`express`无缝的对接。
+
+    var express = require('express');
+    var ifile = require("ifile");
+    var app = express();    
+    app.use(ifile.connect());  //默认值是 [['/static',__dirname]];        
+    app.listen(8124);
+
+上面这4行代码就可以让`express`把静态资源交给`ifile`模块来处理了，我们在这里对它进行了一个简单的压力测试，测试响应一个大小为`92kb`的`jquery.1.7.1.min.js`性能如何，执行：
+
+    ab -c 500 -n 5000 -H "Accept-Encoding: gzip" http://192.168.28.5:8124/static/jquery.1.7.1.min.js
+
+由于在`ab`命令中我们加入了`-H "Accept-Encoding: gzip"`，表示响应的静态文件希望是gzip压缩之后的，所以`ifile`将会把压缩之后的`jquery.1.7.1.min.js`文件响应给客户端。结果如下：
+
+    Server Software:        
+    Server Hostname:        192.168.28.5
+    Server Port:            8124
+    
+    Document Path:          /static/jquery.1.7.1.min.js
+    Document Length:        33016 bytes
+    
+    Concurrency Level:      500
+    Time taken for tests:   9.222 seconds
+    Complete requests:      5000
+    Failed requests:        0
+    Write errors:           0
+    Total transferred:      166495000 bytes
+    HTML transferred:       165080000 bytes
+    Requests per second:    542.16 [#/sec](mean)
+    Time per request:       922.232 [ms](mean)
+    Time per request:       1.844 [ms](mean, across all concurrent requests)
+    Transfer rate:          17630.35 [Kbytes/sec] received
+
+    Connection Times (ms)
+                  min  mean[+/-sd] median   max
+    Connect:        0   49 210.2      1    1003
+    Processing:   191  829 128.6    870    1367
+    Waiting:      150  824 128.5    869    1091
+    Total:        221  878 230.7    873    1921
+    
+    Percentage of the requests served within a certain time (ms)
+      50%    873
+      66%    878
+      75%    881
+      80%    885
+      90%    918
+      95%   1109
+      98%   1815
+      99%   1875
+     100%   1921 (longest request)
+
+我们首先看到`Document Length`一项结果为`33016 bytes`说明我们的jquery文件已经被成功的`gzip`压缩，因为源文件大小是`92kb`；第二我们最关心的`Requests per second:542.16 [#/sec](mean)`，说明我们每秒能处理542个任务，最后我们看到，在这样的压力情况下，平均每个用户的延迟在`1.844 [ms]`。
+
+我们看下使用纯express框架处理这样的压力会是什么样的结果，express测试代码如下：
+
+    var express = require('express');
+    var app = express();
+    app.use(express.compress());//支持gzip
+    app.use('/static', express.static(__dirname + '/static'));
+    app.listen(8124);
+
+代码同样非常简单，注意离我们使用：
+ 
+    app.use('/static', express.static(__dirname + '/static'));
+
+而不是：
+
+    app.use(express.static(__dirname));
+
+后者每个请求都会去匹配一次文件是否存在，而前者只有请求`url`是`/static`开头的才回去匹配，所以前者效率更高一些。然后我们执行相同的`ab`压力测试命令看下结果：
+
+    Server Software:        
+    Server Hostname:        192.168.28.5
+    Server Port:            8124
+    
+    Document Path:          /static/jquery.1.7.1.min.js
+    Document Length:        33064 bytes
+    
+    Concurrency Level:      500
+    Time taken for tests:   16.665 seconds
+    Complete requests:      5000
+    Failed requests:        0
+    Write errors:           0
+    Total transferred:      166890000 bytes
+    HTML transferred:       165320000 bytes
+    Requests per second:    300.03 [#/sec](mean)
+    Time per request:       1666.517 [ms](mean)
+    Time per request:       3.333 [ms](mean, across all concurrent requests)
+    Transfer rate:          9779.59 [Kbytes/sec] received
+
+    Connection Times (ms)
+                  min  mean[+/-sd] median   max
+    Connect:        0  173 539.8      1    7003
+    Processing:   509  886 350.5    809    9366
+    Waiting:      238  476 277.9    426    9361
+    Total:        510 1059 632.9    825    9367
+    
+    Percentage of the requests served within a certain time (ms)
+      50%    825
+      66%    908
+      75%   1201
+      80%   1446
+      90%   1820
+      95%   1952
+      98%   2560
+      99%   3737
+     100%   9367 (longest request)
+
+同样分析一下结果，`Document Length:33064 bytes`表示文档大小为`33064 bytes`，说明我们的gzip起作用了，每秒处理任务数从`ifile`模块的`542`下降到了`300`，最长用户等待时间也延长到了`9367 ms`，可见我们的努力起到了立竿见影的作用，js和c++互相调用以及线程的创建和释放并不是没有损耗的。
+
+但是当我在express的谷歌论坛里贴上这些测试结果，并宣传`ifile`模块的时候，`express`的作者TJ，给我泼了一盆冷水，他在回复中说道：
+
+>请牢记你可能不需要这么高等级的吞吐率系统，就算是每月百万级别下载量的npm，也仅仅每秒处理17个请求而已，这样的压力PHP也可以处理（又黑了一把php）
+
+当然TJ一般不轻易回复别人，能够得到他的回复我也很意外。
 
 ##总结
+单线程的Node.js给我们编码带来了太多的便利和乐趣，我们应该时刻保持清醒的头脑，在写Node.js代码中切不可与PHP混淆，任何一个隐藏的问题都可能击溃整个线上正在运行的Node.js程序。
 
+单线程异步的Node.js不代表不会阻塞，在主线程做过多的任务可能会导致主线程的卡死，影响整个程序的性能，所以我们要非常小心的处理大量的循环，字符串拼接和浮点运算等cpu密集型任务，合理的利用各种技术把任务丢给子线程或子进程去完成，保持Node.js主线程的畅通。
+
+线程/进程的使用并不是没有开销的，尽可能减少创建和销毁线程线程/进程的次数，可以提升我们系统整体的性能和出错的概率。
+
+最后请不要一味的最求高性能，高并发，因为我们可能不需要系统具有那么大的吞吐率，高效，敏捷，低成本的开发才是项目关键的，这也是为什么Node.js能够在众多开发语言中脱瘾而出的关键。
 
 #发布一个package
 
