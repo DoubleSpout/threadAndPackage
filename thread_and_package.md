@@ -675,6 +675,13 @@ Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他�
 
 最后请不要一味的最求高性能，高并发，因为我们可能不需要系统具有那么大的吞吐率，高效，敏捷，低成本的开发才是项目关键的，这也是为什么Node.js能够在众多开发语言中脱颖而出的关键。
 
+#参考文献：
+- <http://smashingnode.com> Smashing Node.JS By Guillermo Rauch
+- <http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for> Fibers and Threads in node.js – what for? By Bruno's Ramblings
+- <https://github.com/xk/node-threads-a-gogo> TAGG: Threads à gogo for Node.js By Jorge Chamorro Bieling
+- <https://code.google.com/p/v8/> Google v8
+- <https://github.com/joyent/libuv> libuv by joyent
+
 #发布一个package
 本章将带领大家一步步的开发一个属于自己的package，测试完成后，发布到npm上可以供开发人员下载。
 
@@ -684,12 +691,61 @@ Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他�
 随着大家对Node.js不断的深入了解，其实会发现想要解决一些比较普遍的问题都会有对应的Node.js包，比如我们想解决编码问题就可以使用`icon-v`，我们想要一个mysql的连接引擎也会有`mysql`包供我们使用。
 
 ##创建package.json
+几乎任何一个Node.js应用都会有`package.json`这个文件，我们之前已经介绍过它的一些主要属性了，同样我们想要在`npm`上创建一个pacakge，就必须先创建一个`package.json`文件。
+我们可以利用`npm init`命令，根据命令行提示一步步的初始化并创建一个`package.json`文件。
 
+    {
+      "name": "nodeLibuvThread",
+      "version": "0.0.0",
+      "description": "A Node.js multi-thread package,using libuv lib",
+      "main": "index.js",
+      "scripts": {
+        "test": "node ./test/test.js"
+      },
+      "keywords": [
+        "node",
+        "libuv",
+        "thread"
+      ],
+      "author": "snoopy",
+      "license": "BSD-2-Clause"
+    }
 
+##设计package的文件目录
+对于开发一个Node.js的包，我们首先需要一个入口文件，我们一般取名为`index.js`，而且我们必须在`package.json`文件中注明入口文件名：
 
-##设计package的文件和目录
+    "main": "index.js"
+
+这样包的使用者在他们的代码中`require`我们开发的包名，就可以使用我们在`index.js`中`export`输出的对象或者方法了。
+
+一般js的逻辑代码我们放在`lib`目录中，所以很多包的`index.js`会有如下代码：
+
+    module.exports = require('./lib/mongodb');
+
+直接将lib文件夹下的某一个文件输出给包的使用者，包的逻辑代码在lib中如何组织这个由包的开发者自由发挥了。
+
+如果这个Node.js包还包括了部分C++代码，我们一般把这部分代码放在`src`文件目录中，如果用到第三方的C++类库，通常放在`deps`目录下。
+
+我们开发完毕一个包，需要给开发者使用，所以我们必须编写详细而且正确无误的说明文档，那就是`readme.md`、文件，它将详细的描述我们的包安装方法，解决的问题以及使用方法，最后也需要注明代码的开源协议。
+
+提供了详细的说明档我们还必须提供一些简单的例子供开发人员参考，可能有些人觉得看例子的代码更加直观，所以一般我们把包使用的示例代码放在`example`文件夹下。
+
+在我们的包最终要上架`npm`之前，我们还必须对它做详细的测试，这不仅是对自己的代码负责，也是对这个包的使用者负责，所以我们将会把测试代码放在`test`文件夹下，同时我们要把测试脚本的调用方法写入`package.json`，这样包的使用者只需要在包的根目录执行`npm test`就可以运行这个包的测试用例，判断这个包是否安装成功。
+
+    "scripts": {
+            "test": "node ./test/test.js"
+          },
+
+另外如果包还支持全局的命令，我们还需要把注册的全局命令放在`bin`目录下，例如我们执行
+
+    npm install -g express
+
+将会把express命令注册到全局命令中，在命令行执行`express`命令就相当于执行了`bin`目录下的`express`文件的内容。
+
+在我们准备把包发布到`npm`上之前，我们还有一个非常重要的文件没有创建————`.npmignore`。这个文件描述了我们过滤掉那些文件不发布到`npm`上去，一般必须过滤掉的目录就是`node_modules`。这个目录因为可能涉及到C++模块的编译，必须在每次`npm install`重新创建，所以不必提交到`npm`上。同样不必提交到`npm`上的还有我们之后要介绍的`build`文件夹。
 
 ##纯js包开发
+我们现在正式开始开发一个Node.js包，主要是利用libuv库编写一个Node.js多线程支持的包，这个包会包括js部分和C++部分，它们两部分提供不同功能，js主要提供对外的`api`和一些初始化工作，c++则主要负责线程的支持。
 
 ###入口文件
 
@@ -699,16 +755,91 @@ Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他�
 
 
 ##安装node-gyp
+`node-gyp`是跨平台Node.js原生C++插件的命令行构建工具，它帮我们处理了在各种不同平台上构建插件的差异，具有简单、易用、统一的接口，在各个平台上都是使用相同的命令来进行构建。在`0.8`版本之前的Node.js是使用`node-waf`来实现这个功能的，从`0.8`版本开始都将使用`node-gyp`命令。
 
+要进行Node.js的C++插件开发就必须先安装`node-gyp`命令，我们同样可以通过`npm`来进行安装
+
+    $ npm install -g node-gyp
+
+在各个平台你需要保证先安装了如下的软件：
+
+  * Unix:
+    * `python` （版本必须为`v2.7`, `v3.x.x` 是*不*支持的）
+    * `make` （make命令）
+    * 正确的 C/C++ 编译工具, 例如：GCC
+  * Windows:
+    * [Python][windows-python] （版本必须为[`v2.7.3`][windows-python-v2.7.3], `v3.x.x` 是*不*支持的)
+    * Windows XP/Vista/7:
+      * Microsoft Visual Studio C++ 2010 （[Express][msvc2010] 也可以使用）
+      * 如果是在64位系统上构建插件，你需要 [Windows 7 64-bit SDK][win7sdk]
+        * 如果安装失败，尝试将你的C++ 2010 x64&x86卸载，重新安装sdk后再安装它。
+      * 如果暴64-bit编译器没有安装的错误，你可以将[编译器升级到新版本，兼容Windows SDK 7.1]。
+    * Windows 7/8:
+      * Microsoft Visual Studio C++ 2012 for Windows （[Express][msvc2012] 也可以使用）
+
+正确安装`node-gyp`命令之后，我们就可以在命令行看到如下打印结果了：
+
+    node-gyp -v
+    v0.9.5
 
 ##创建binding.byp
+`binding.byp`文件使用`json`格式字符串，它描述了如何配制一个准备构建的插件。这个文件需要放置在你的包的根目录下，类似`package.json`文件。一个简单`binding.byp`文件示例：
 
+    {
+      "targets": [
+        {
+          "target_name": "binding",
+          "sources": [ "src/binding.cc" ]
+        }
+      ]
+    }
+
+`targets`表示输出的插件数组，数组中如果有多项将会输出多个插件；`target_name`表示输出的插件的文件名，这个文件名将可以直接通过Node.js的requrie引用；`sources`表示待编译的原文件路径。其中还有很多选项，比如`cc_flag`、`libraries`等，详情请参阅：[https://github.com/TooTallNate/node-gyp](https://github.com/TooTallNate/node-gyp)。
 
 ##c++插件包开发
-
+本节将从构建一个简单的`hello world`插件开始，完善我们之前的`nodeLibuvThread`包的C++代码部分，让大家熟悉整个Node.js的C++插件开发流程。
 
 ###hello wrold实例
+在开始我们完善`nodeLibuvThread`之前，我们先看一个简单的`hello world`的例子，让大家熟悉一下C++插件的开发。我们首先创建一个`hello.cc`的文件，代码如下：
 
+    #include <node.h>
+    #include <v8.h>
+    
+    using namespace v8;
+    
+    Handle<Value> Method(const Arguments& args) {
+      HandleScope scope;
+      return scope.Close(String::New("world"));
+    }
+    
+    void init(Handle<Object> exports) {
+      exports->Set(String::NewSymbol("hello"),
+          FunctionTemplate::New(Method)->GetFunction());
+    }
+    
+    NODE_MODULE(hello, init)
+
+`node.h`和`v8.h`会由`node-gyp`链接进去，所以不需制定路径直接`include`就可以了，我们定义了一个Method方法，将返回`js`字符串`world`。然后我们定义对外`exports`，为`exports`对象增加了属性名是`hello`，值为`Method`的方法。
+
+最后通过`NODE_MODULE`将`init`和插件名`hello`连接起来，注意最后的`NODE_MODULE`没有分好，因为它不是一个函数。
+
+然后我们创建binding.gyp文件，定义插件名和源文件路径：
+
+    {
+      "targets": [
+        {
+          "target_name": "hello",
+          "sources": [ "hello.cc" ]
+        }
+      ]
+    }
+
+然后我们执行`node-gyp rebuild`命令，编译之前写好的C++插件，将会自动生成`build`文件夹，于是我们利用下面的代码加载刚刚生成的C++插件给Node.js调用，创建hello.js：
+
+    var addon = require('./build/Release/hello');
+    console.log(addon.hello()); // 'world'
+
+执行这段Node.js程序，将会在屏幕上打印出world字符串，这样我们一个简单的`hello world`的C++插件就开发完毕了，下面我们将开始完善我们之前的`nodeLibuvThread`包的线程部分。
 
 ###定义交互接口
 
@@ -743,19 +874,16 @@ Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他�
 ###开源协议
 
 
-##发布到npm
-
-
 ##发布到github
+
+
+##发布到npm
 
 
 ##测试跨平台
 
 
-
 #参考文献：
-- <http://smashingnode.com> Smashing Node.JS By Guillermo Rauch
-- <http://bjouhier.wordpress.com/2012/03/11/fibers-and-threads-in-node-js-what-for> Fibers and Threads in node.js – what for? By Bruno's Ramblings
-- <https://github.com/xk/node-threads-a-gogo> TAGG: Threads à gogo for Node.js By Jorge Chamorro Bieling
-- <https://code.google.com/p/v8/> Google v8
-- <https://github.com/joyent/libuv> libuv by joyent
+- <https://github.com/TooTallNate/node-gyp> node-gyp
+- <https://npmjs.org> npm
+
