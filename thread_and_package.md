@@ -745,14 +745,65 @@ Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他�
 在我们准备把包发布到`npm`上之前，我们还有一个非常重要的文件没有创建————`.npmignore`。这个文件描述了我们过滤掉那些文件不发布到`npm`上去，一般必须过滤掉的目录就是`node_modules`。这个目录因为可能涉及到C++模块的编译，必须在每次`npm install`重新创建，所以不必提交到`npm`上。同样不必提交到`npm`上的还有我们之后要介绍的`build`文件夹。
 
 ##纯js包开发
-我们现在正式开始开发一个Node.js包，主要是利用libuv库编写一个Node.js多线程支持的包，这个包会包括js部分和C++部分，它们两部分提供不同功能，js主要提供对外的`api`和一些初始化工作，c++则主要负责线程的支持。
+我们现在正式开始开发一个Node.js包，主要是利用libuv库编写一个Node.js多线程支持的包，类似`tagg2`，这个包会包括js部分和C++部分，它们两部分提供不同功能，js主要提供对外的`api`和一些初始化工作，c++则主要负责多线程的支持。
+
+主要的设计思路是将js定义好的线程工作函数包装下，转换成字符串加上参数还有回调函数一起丢给libuv去处理，执行完毕把线程工作函数的`return`值作为回调函数参数丢回给主线程，执行回调函数，大致流程图如下：
+
+    +----+----+ 
+    |用户代码 | 
+    +----+----+
+         | (1)将传入参数，线程工作函数，回调函数丢给nodeLibuvThread包   
+    +----+----+ 
+    |   包    | 
+    +----+----+
+         | (2)合法性验证，包装线程工作函数，然后丢给libuv处理
+    +----+----+ 
+    |c++主线程| 
+    +----+----+
+         | (3)将js对象，字符串转换为c++指针丢入libuv子线程，保存回调函数
+    +----+----+ 
+    |libuv线程| 
+    +----+----+
+         | (4)申请一个新的js实例运行工作函数，将该函数执行结果保存
+    +----+----+ 
+    |c++主线程| 
+    +----+----+
+         | (5)线程执行完毕之后，执行js主线程的回调函数并传入参数
+    +----+----+ 
+    |用户代码 | 
+    +----+----+
 
 ###入口文件
+我们在包根目录创建`index.js`文件，代码如下：
+
+    module.exports = require('./lib/libuvThread.js');
+
+这里我们直接把`lib/libuvThread.js`的`exports`作为包的入口暴露给开发者。
 
 ###api设计
+我们想要实现简单的`tagg2`模块那样让Node.js支持多线程的包，至少需要提供给开发者编写在线程中执行的工作函数的功能，而且这个工作函数需要动态的传入参数来执行，一旦工作函数执行完毕，我需要告知Node.js主线程执行的结果，是出现了错误还是获得了执行结果，所以回调函数也是必须的。
+
+总结起来，我们命名的`nodeLibuvThread`包需要对开发者提供一个具有接受三个参数的接口：
+  
+  * workFunc：开发者期望在线程中执行的工作函数，结果以`return`返回，出于简单规定必须为字符串；
+  * argObject：在线程中执行的工作函数参数，出于简单我们会将参数强制转换为字符串；
+  * callback：工作函数执行完毕后执行的回调函数，具有两个参数，`error`和`result`。
 
 ###api实现
+设计好包的对外接口之后，我们就开始实现它，在`lib`文件夹下，创建`libuvThread.js`文件，代码如下：
 
+    var libuvThreadCC = require('../build/Release/libuvThread.node');
+    //这边libuvThreadCC是加载C++暴露给js调用的接口，这里先不理会它
+    module.exports = function(work, arg, cb){
+      if('function' !== typeof work) throw('argument[0] must be a function');
+      if('object' !== typeof arg) throw('argument[1] must be an object');
+      cb = cb || function(){};
+      arg = JSON.stringify(arg);
+      work = '('+cb.toString()+')('+arg+')';
+      libuvThreadCC(arg,work,cb);
+    }
+
+程序一开始我们动态的把c++插件加载进来，然后我们实现了接受三个参数的`nodeLibuvThread`包对外接口，通过对参数的一些合法性验证和包装之后，我们把三个参数丢到`libuvThreadCC`函数去执行。`libuvThreadCC`实现下面会详细讲到，它主要实现了多线程的执行和`cb`函数的回调。
 
 ##安装node-gyp
 `node-gyp`是跨平台Node.js原生C++插件的命令行构建工具，它帮我们处理了在各种不同平台上构建插件的差异，具有简单、易用、统一的接口，在各个平台上都是使用相同的命令来进行构建。在`0.8`版本之前的Node.js是使用`node-waf`来实现这个功能的，从`0.8`版本开始都将使用`node-gyp`命令。
@@ -839,9 +890,14 @@ Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他�
     var addon = require('./build/Release/hello');
     console.log(addon.hello()); // 'world'
 
-执行这段Node.js程序，将会在屏幕上打印出world字符串，这样我们一个简单的`hello world`的C++插件就开发完毕了，下面我们将开始完善我们之前的`nodeLibuvThread`包的线程部分。
+执行这段Node.js程序，将会在屏幕上打印出world字符串，这样我们一个简单的`hello world`的C++插件就开发完毕了，下面我们将开始完善我们之前的`nodeLibuvThread`包的多线程支持部分。
 
 ###定义交互接口
+我们先创建`threadJobClass.h`文件，用来声明`threadJobClass`类，它主要是保存js传递过来的参数用的。
+
+
+
+我们先创建`libuvThreadClass.h`文件，用来声明`libuvThreadClass`类，它主要是
 
 
 ###开始编写c++插件
