@@ -520,9 +520,9 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
     | 客户端  | 
     +----+----+
 
-这个流程中的`(2)`，`(3)`，`(4)`步中都经历了从js到c++ ，打开和释放文件，还有调用了`zlib`库的`gzip`算法，其中每个异步的算法都会有创建和销毁线程的开销，所以这样也是大家诟病Node.js处理静态文件不给力的原因之一。
+这个流程中的`(2)`，`(3)`，`(4)`步中都经历了从js到C++ ，打开和释放文件，还有调用了`zlib`库的`gzip`算法，其中每个异步的算法都会有创建和销毁线程的开销，所以这样也是大家诟病Node.js处理静态文件不给力的原因之一。
 
-为了改善这个问题，我之前有利用`libuv`库开发了一个改善Node.js的http/https处理静态文件的包，名为`ifile`，`ifile`包之所以可以加速Node.js的静态文件处理性能，主要是减少了js和c++的互相调用，以及频繁的创建和销毁线程的开销，下图是`ifile`包处理一个静态无缓存资源的流程图：
+为了改善这个问题，我之前有利用`libuv`库开发了一个改善Node.js的http/https处理静态文件的包，名为`ifile`，`ifile`包之所以可以加速Node.js的静态文件处理性能，主要是减少了js和C++的互相调用，以及频繁的创建和销毁线程的开销，下图是`ifile`包处理一个静态无缓存资源的流程图：
 
     +----+----+ 
     | 客户端  | 
@@ -533,15 +533,15 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
     +----+----+
          | (2)将req和res对象直接丢给ifile处理
     +----+----+ 
-    |c++主线程| 
+    |C++主线程| 
     +----+----+
          | (3)创建工作子线程
     +----+----+ 
-    |c++子线程| 
+    |C++子线程| 
     +----+----+
          | (4)匹配路由，文件状态，读取文件，gzip压缩，完成之后回调c++主线程
     +----+----+ 
-    |c++主线程| 
+    |C++主线程| 
     +----+----+
          | (5)静态资源响应给客户端
     +----+----+ 
@@ -656,7 +656,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
       99%   3737
      100%   9367 (longest request)
 
-同样分析一下结果，`Document Length:33064 bytes`表示文档大小为`33064 bytes`，说明我们的gzip起作用了，每秒处理任务数从`ifile`包的`542`下降到了`300`，最长用户等待时间也延长到了`9367 ms`，可见我们的努力起到了立竿见影的作用，js和c++互相调用以及线程的创建和释放并不是没有损耗的。
+同样分析一下结果，`Document Length:33064 bytes`表示文档大小为`33064 bytes`，说明我们的gzip起作用了，每秒处理任务数从`ifile`包的`542`下降到了`300`，最长用户等待时间也延长到了`9367 ms`，可见我们的努力起到了立竿见影的作用，js和C++互相调用以及线程的创建和释放并不是没有损耗的。
 
 但是当我在`express`的谷歌论坛里贴上这些测试结果，并宣传`ifile`包的时候，`express`的作者TJ，给我泼了一盆冷水，他在回复中说道：
 
@@ -681,16 +681,16 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 - <https://github.com/joyent/libuv> libuv by joyent
 
 #发布一个package
-本章将带领大家一步步的开发一个属于自己的package，测试完成后，发布到npm上可以供开发人员下载。
+本章将带领大家一步步的开发一个基于`libuv`库，让Node.js支持多线程的包，开发并测试完成后，将发布到`npm`上供开发人员下载和使用。
 
 ##package解决的问题
-在我们使用Node.js开发一些项目的时候，大家都会用到各种各样的Node.js包，比如我们上一章使用的`express`，`tagg2`等等都是一个发布到`npm`上的包。
+在我们使用Node.js开发一些项目的时候，大家都会用到各种各样的Node.js包，比如我们上一章使用的`express`，`tagg2`等都是一个个发布到`npm`上的包。
 
-随着大家对Node.js不断的深入了解，其实会发现想要解决一些比较普遍的问题都会有对应的Node.js包，比如我们想解决编码问题就可以使用`icon-v`，我们想要一个mysql的连接引擎也会有`mysql`包供我们使用。
+随着大家对Node.js不断的深入了解，其实会发现想要解决一些比较普遍的问题都会有对应的Node.js包，比如我们想解决编码问题就可以使用`icon-v`，我们想要一个`mysql`的连接引擎也会有`mysql`包供我们使用。
 
 ##创建package.json
-几乎任何一个Node.js应用都会有`package.json`这个文件，我们之前已经介绍过它的一些主要属性了，同样我们想要在`npm`上创建一个pacakge，就必须先创建一个`package.json`文件。
-我们可以利用`npm init`命令，根据命令行提示一步步的初始化并创建一个`package.json`文件。
+几乎任何一个Node.js应用都会有`package.json`这个文件，我们之前已经介绍过它的一些主要属性了，我们想要在`npm`上创建一个包，就必须先创建一个`package.json`文件。
+我们可以利用`npm init`命令，根据命令行提示一步步的初始化并创建`package.json`文件。
 
     {
       "name": "libuv_thread",
@@ -718,55 +718,55 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 
 一般js的逻辑代码我们放在`lib`目录中，所以很多包的`index.js`会有如下代码：
 
-    module.exports = require('./lib/mongodb');
+    module.exports = require('./lib/mongodb');//mongodb包的index.js文件
 
-直接将lib文件夹下的某一个文件输出给包的使用者，包的逻辑代码在lib中如何组织这个由包的开发者自由发挥了。
+直接将`lib`文件夹下的某一个文件输出给包的使用者，包的逻辑代码在`lib`文件夹中如何组织，完全由包的开发者自由发挥了。
 
 如果这个Node.js包还包括了部分C++代码，我们一般把这部分代码放在`src`文件目录中，如果用到第三方的C++类库，通常放在`deps`目录下。
 
-我们开发完毕一个包，需要给开发者使用，所以我们必须编写详细而且正确无误的说明文档，那就是`readme.md`、文件，它将详细的描述我们的包安装方法，解决的问题以及使用方法，最后也需要注明代码的开源协议。
+我们开发完毕一个包，需要给开发者使用，所以我们必须编写详细而且正确无误的说明文档，那就是`readme.md`文件，它将详细的描述包的安装说明，解决的问题以及使用方法，最后如果有需要最好注明代码的开源协议。
 
-提供了详细的说明档我们还必须提供一些简单的例子供开发人员参考，可能有些人觉得看例子的代码更加直观，所以一般我们把包使用的示例代码放在`example`文件夹下。
+提供了详细的说明档我们还必须提供一些简单的例子供开发人员参考，可能有些人觉得看例子比代码更加直观，所以一般我们把包使用的示例代码放在`example`文件夹下。
 
-在我们的包最终要上架`npm`之前，我们还必须对它做详细的测试，这不仅是对自己的代码负责，也是对这个包的使用者负责，所以我们将会把测试代码放在`test`文件夹下，同时我们要把测试脚本的调用方法写入`package.json`，这样包的使用者只需要在包的根目录执行`npm test`就可以运行这个包的测试用例，判断这个包是否安装成功。
+在我们的包最终要上架`npm`之前，我们还必须对它做详细的测试，这不仅是对自己的代码负责，也是对包的使用者负责，我们将会把测试代码放在`test`文件夹下，同时我们要把测试脚本的调用方法写入`package.json`，这样包的使用者只需要在包的根目录执行`npm test`就可以运行这个包的测试用例，判断这个包是否安装成功。
 
     "scripts": {
             "test": "node ./test/test.js"
           },
 
-另外如果包还支持全局的命令，我们还需要把注册的全局命令放在`bin`目录下，例如我们执行
+另外如果包还支持全局的命令，我们还需要把待注册的全局命令放在`bin`目录下，例如我们执行
 
     npm install -g express
 
-将会把express命令注册到全局命令中，在命令行执行`express`命令就相当于执行了`bin`目录下的`express`文件的内容。
+将会把`express`命令注册到全局命令中，在命令行执行`express`命令就相当于执行了`bin`目录下的`express`文件。
 
-在我们准备把包发布到`npm`上之前，我们还有一个非常重要的文件没有创建————`.npmignore`。这个文件描述了我们过滤掉那些文件不发布到`npm`上去，一般必须过滤掉的目录就是`node_modules`。这个目录因为可能涉及到C++模块的编译，必须在每次`npm install`重新创建，所以不必提交到`npm`上。同样不必提交到`npm`上的还有我们之后要介绍的`build`文件夹。
+在我们准备把包发布到`npm`上之前，还有一个非常重要的文件没有创建————`.npmignore`。这个文件描述了我们过滤掉那些文件不发布到`npm`上去，一般必须过滤掉的目录就是`node_modules`。这个目录因为可能涉及到C++模块的编译，必须在每次`npm install`重新创建，所以不必提交到`npm`上。同样不必提交到`npm`上的还有我们之后要介绍的`build`文件夹。
 
 ##纯js包开发
-我们现在正式开始开发一个Node.js包，主要是利用libuv库编写一个Node.js多线程支持的包，类似`tagg2`，这个包会包括js部分和C++部分，它们两部分提供不同功能，js主要提供对外的`api`和一些初始化工作，c++则主要负责多线程的支持。
+我们现在正式开始开发一个Node.js包，利用`libuv`库编写一个Node.js多线程支持的包，类似`tagg2`，这个包会包括js部分和C++部分，它们两部分提供不同功能，js主要提供对外的`api`和一些初始化工作，C++则主要负责多线程的支持。
 
-主要的设计思路是将js定义好的线程工作函数包装下，转换成字符串加上参数还有回调函数一起丢给libuv去处理，执行完毕把线程工作函数的`return`值作为回调函数参数丢回给主线程，执行回调函数，大致流程图如下：
+主要的设计思路是将js定义好的线程工作函数包装下，转换成字符串加上参数还有回调函数一起丢给`libuv`去处理，执行完毕把线程工作函数的`return`值作为回调函数参数丢回给主线程，执行回调函数，大致流程图如下：
 
     +----+----+ 
     |用户代码 | 
     +----+----+
-         | (1)将传入参数，线程工作函数，回调函数丢给libuv_thread包   
+         | (1)将传入参数，线程工作函数，回调函数丢给libuv_thread包js部分处理   
     +----+----+ 
     |   包    | 
     +----+----+
          | (2)合法性验证，包装线程工作函数，然后丢给libuv处理
     +----+----+ 
-    |c++主线程| 
+    |C++主线程| 
     +----+----+
-         | (3)将js对象，字符串转换为c++指针丢入libuv子线程，保存回调函数
+         | (3)将js对象，函数字符串丢入libuv子线程，保存回调函数
     +----+----+ 
     |libuv线程| 
     +----+----+
-         | (4)申请一个新的js实例运行工作函数，将该函数执行结果保存
+         | (4)申请一个新的js实例运行工作函数，将该函数执行结果保存下来
     +----+----+ 
-    |c++主线程| 
+    |C++主线程| 
     +----+----+
-         | (5)线程执行完毕之后，执行js主线程的回调函数并传入参数
+         | (5)线程执行完毕之后，执行js主线程的回调函数，并传入运行结果作为参数
     +----+----+ 
     |用户代码 | 
     +----+----+
@@ -779,11 +779,11 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 这里我们直接把`lib/libuvThread.js`的`exports`作为包的入口暴露给开发者。
 
 ###api设计
-我们想要实现简单的`tagg2`包那样让Node.js支持多线程的包，至少需要提供给开发者编写在线程中执行的工作函数的功能，而且这个工作函数需要动态的传入参数来执行，一旦工作函数执行完毕，我需要告知Node.js主线程执行的结果，是出现了错误还是获得了执行结果，所以回调函数也是必须的。
+我们想要实现简单的`tagg2`包那样让Node.js支持多线程的包，至少需要提供给开发者编写在线程中执行的工作函数的功能，而且这个工作函数需要动态的传入参数来执行，一旦工作函数执行完毕，需要告知Node.js主线程执行的结果，是出现了错误还是获得了执行结果，所以回调函数也是必须的。
 
 总结起来，我们命名的`libuv_thread`包需要对开发者提供一个具有接受三个参数的接口：
   
-  * workFunc：开发者期望在线程中执行的工作函数，结果以`return`返回，出于简单规定必须为字符串；
+  * workFunc：开发者期望在线程中执行的工作函数，结果以`return`返回，出于简单规定返回值必须为字符串；
   * argObject：在线程中执行的工作函数参数，出于简单我们会将参数强制转换为字符串；
   * callback：工作函数执行完毕后执行的回调函数，具有两个参数，`error`和`result`。
 
@@ -791,7 +791,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 设计好包的对外接口之后，我们就开始实现它，在`lib`文件夹下，创建`libuvThread.js`文件，代码如下：
 
     var libuvThreadCC = require('../build/Release/uv_thread.node').libuvThreadCC;
-    //这边libuvThreadCC是加载C++暴露给js调用的接口，这里先不理会它
+    //这边libuvThreadCC是加载C++暴露给js调用的接口，后面会讲到，先不理会它
     module.exports = function(work, arg, cb){
       if('function' !== typeof work) throw('argument[0] must be a function');
       if('object' !== typeof arg) throw('argument[1] must be an object');
@@ -802,9 +802,11 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
       libuvThreadCC(work,cb);
     }
 
-程序一开始我们动态的把c++插件加载进来，然后我们实现了接受三个参数的`libuv_thread`包对外接口，通过对参数的一些合法性验证和包装之后，我们把包装的`work`函数和回调函数丢到`libuvThreadCC`函数去执行。`libuvThreadCC`实现下面会详细讲到，它主要实现了多线程的执行和`cb`函数的回调。
+程序一开始我们动态的把C++插件加载进来，然后我们实现了接受三个参数的对外接口，通过对参数的一些合法性验证和包装之后，我们把包装后的`work`函数和回调函数`callback`丢到`libuvThreadCC`函数中去执行。`libuvThreadCC`下面会详细讲到，它主要实现了多线程的执行和`callback`函数的回调。
 
 ##安装node-gyp
+在我们讨论`libuvThreadCC`函数之前，需要先介绍一下如何构建Node.js的C++插件。
+
 `node-gyp`是跨平台Node.js原生C++插件的命令行构建工具，它帮我们处理了在各种不同平台上构建插件的差异，具有简单、易用、统一的接口，在各个平台上都是使用相同的命令来进行构建。在`0.8`版本之前的Node.js是使用`node-waf`来实现这个功能的，从`0.8`版本开始都将使用`node-gyp`命令。
 
 要进行Node.js的C++插件开发就必须先安装`node-gyp`命令，我们同样可以通过`npm`来进行安装
@@ -823,7 +825,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
       * Microsoft Visual Studio C++ 2010 （[Express][msvc2010] 也可以使用）
       * 如果是在64位系统上构建插件，你需要 [Windows 7 64-bit SDK][win7sdk]
         * 如果安装失败，尝试将你的C++ 2010 x64&x86卸载，重新安装sdk后再安装它。
-      * 如果暴64-bit编译器没有安装的错误，你可以将[编译器升级到新版本，兼容Windows SDK 7.1]。
+      * 如果出现64-bit编译器没有安装的错误，你可以将[编译器升级到新版本，用于兼容Windows SDK 7.1]。
     * Windows 7/8:
       * Microsoft Visual Studio C++ 2012 for Windows （[Express][msvc2012] 也可以使用）
 
@@ -844,13 +846,13 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
       ]
     }
 
-`targets`表示输出的插件数组，数组中如果有多项将会输出多个插件；`target_name`表示输出的插件的文件名，这个文件名将可以直接通过Node.js的requrie引用；`sources`表示待编译的原文件路径。其中还有很多选项，比如`cc_flag`、`libraries`等，详情请参阅：[https://github.com/TooTallNate/node-gyp](https://github.com/TooTallNate/node-gyp)。
+`targets`表示输出的插件数组，数组中如果有多项将会输出多个插件；`target_name`表示输出插件的文件名，这个文件名将可以直接通过Node.js的`requrie`引用；`sources`表示待编译的原文件路径。`binding.byp`还有很多选项，比如`cc_flag`、`libraries`等，详情请参阅：[https://github.com/TooTallNate/node-gyp](https://github.com/TooTallNate/node-gyp)。
 
 ##c++插件包开发
 本节将从构建一个简单的`hello world`插件开始，完善我们之前的`libuv_thread`包的C++代码部分，让大家熟悉整个Node.js的C++插件开发流程。
 
 ###hello wrold实例
-在开始我们完善`libuv_thread`之前，我们先看一个简单的`hello world`的例子，让大家熟悉一下C++插件的开发。我们首先创建一个`hello.cc`的文件，代码如下：
+在开始我们继续开发`libuv_thread`包之前，我们先看一个简单的`hello world`的例子，让大家熟悉一下C++插件的开发。我们首先创建一个`hello.cc`的文件，代码如下：
 
     #include <node.h>
     #include <v8.h>
@@ -869,11 +871,11 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
     
     NODE_MODULE(hello, init)
 
-`node.h`和`v8.h`会由`node-gyp`链接进去，所以不需制定路径直接`include`就可以了，我们定义了一个Method方法，将返回`js`字符串`world`。然后我们定义对外`exports`，为`exports`对象增加了属性名是`hello`，值为`Method`的方法。
+`node.h`和`v8.h`会由`node-gyp`链接进去，所以不需制定路径直接`include`就可以了，我们定义了一个`Method`方法，将返回js字符串`world`。然后我们定义对外的`exports`输出，为`exports`对象增加了属性名是`hello`的方法。
 
 最后通过`NODE_MODULE`将`init`和插件名`hello`连接起来，注意最后的`NODE_MODULE`没有分好，因为它不是一个函数。
 
-然后我们创建binding.gyp文件，定义插件名和源文件路径：
+然后我们创建`binding.gyp`文件，定义插件名和源文件路径：
 
     {
       "targets": [
@@ -889,9 +891,9 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
     var addon = require('./build/Release/hello');
     console.log(addon.hello()); // 'world'
 
-执行这段Node.js程序，将会在屏幕上打印出world字符串，这样我们一个简单的`hello world`的C++插件就开发完毕了，下面我们将开始完善我们之前的`libuv_thread`包的多线程支持部分。
+执行这段Node.js程序，将会在屏幕上打印出`world`字符串，这样我们一个简单的`hello world`C++插件就开发完毕了，下面我们将开始继续开发`libuv_thread`包的多线程支持部分。
 
-###开始编写c++插件
+###开始编写C++插件
 我们先创建`threadJobClass.h`文件，用来声明`ThreadJob`类，这个类的实例会在多个线程中用到。
 
     using namespace v8;
@@ -916,9 +918,9 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
     class LibuvThread {
       public:
         static Handle<Value> libuvThreadCC(const Arguments& args);//C++插件和js交互的接口函数        
-        static void workerCallback(uv_work_t* req);//子线程执行函数
-        static void threadWork(ThreadJob* req);//子线程执行函数
-        static void afterWorkerCallback(uv_work_t *req, int status);//子线程结束后，主线程回调函数
+        static void workerCallback(uv_work_t* req);//子线程执行函数1
+        static void threadWork(ThreadJob* req);//子线程执行函数2
+        static void afterWorkerCallback(uv_work_t *req, int status);//子线程结束后的回调函数
         LibuvThread(){};
         ~LibuvThread(){};
     };
@@ -933,33 +935,35 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
     }
     NODE_MODULE(uv_thread, Init)
 
-最后我们将实现这些接口，完成整个`libuv_thread`包的核心功能开发。
+最后我们将实现这些接口，完成整个`libuv_thread`包的核心部分功能开发。
 
-我们先实现会被js调用的`LibuvThread::libuvThreadCC`静态方法，它将接受js传入的2个参数，并且调用libuv的线程池，将js包装的`work`函数字符串放入子线程中去执行。
+我们先实现会被js调用的`LibuvThread::libuvThreadCC`静态方法，它将接受js传入的2个参数，并且调用`libuv`的线程池，将js包装的`work`函数字符串放入子线程中去执行。
 
     Handle<Value> LibuvThread::libuvThreadCC(const Arguments& args){
-        HandleScope scope;
-        ThreadJob *t_job_p = new ThreadJob();
-        String::Utf8Value v1(args[0]->ToString());
-        t_job_p->strFunc = new char[strlen(*v1)+1];
-        strcpy(t_job_p->strFunc,*v1);
-        t_job_p->strFunc[strlen(*v1)] = '\0';
-        t_job_p->callback = Persistent<Object>::New(args[1]->ToObject());
-        t_job_p->uv_work.data = t_job_p;
-        t_job_p->iserr = 0;
-        int r = uv_queue_work(uv_default_loop(), &(t_job_p->uv_work), workerCallback, afterWorkerCallback);
-        return scope.Close(Number::New(r)); 
+      HandleScope scope;
+      ThreadJob *t_job_p = new ThreadJob();
+      String::Utf8Value v1(args[0]->ToString());
+      t_job_p->strFunc = new char[strlen(*v1)+1];
+      strcpy(t_job_p->strFunc,*v1);//因为需要跨线程，所以需要将js字符串拷贝到char数组中
+      t_job_p->strFunc[strlen(*v1)] = '\0';
+      t_job_p->callback = Persistent<Object>::New(args[1]->ToObject());
+      t_job_p->uv_work.data = t_job_p;
+      t_job_p->iserr = 0;
+      int r = uv_queue_work(uv_default_loop(), &(t_job_p->uv_work), workerCallback, afterWorkerCallback);
+      return scope.Close(Number::New(r)); 
     };
 
-在`V8`中，内存分配都是在V8的Heap中进行分配的，js的值和对象也都存放在`V8`的`Heap`中。这个`Heap`由`V8`独立的去维护，失去引用的对象将会被`V8`的`GC`掉并可以重新分配给其他对象。而`Handle`即是对`Heap`中对象的引用。`V8`为了对内存分配进行管理，`GC`需要对`V8`中的所有对象进行跟踪，而对象都是用`Handle`方式引用的，所以`GC`需要对`Handle`进行管理，这样`GC`就能知道`Heap`中一个对象的引用情况，当一个对象的`Handle`引用为发生改变的时候，`GC`即可对该对象进行回收或者移动。因此，`V8`编程中必须使用`Handle`去引用一个对象，而不是直接通过C++的方式去获取对象的引用，直接通过C++的方式去直接去引用一个对象，会使得该对象无法被`V8`管理。
+我们首先对`HandleScope scope`进行简单的说明。
 
-`Handle`分为`Local`和`Persistent`两种。从字面上就能知道，`Local`是局部的，它同时被`HandleScope`进行管理。`Persistent`，类似全局的，不受`HandleScope`的管理，其作用域可以延伸到不同的函数，而`Local`是局部的，作用域比较小。`Persistent Handle`对象需要`Persistent::New`, `Persistent::Dispose`配对使用，类似于C++中`new`和`delete`。
+>在`V8`中，内存分配都是在`V8`的`Heap`中进行分配的，js的值和对象也都存放在`V8`的`Heap`中。这个`Heap`由`V8`独立的去维护，失去引用的对象将会被`V8`的`GC`处理掉并重新分配给其他对象。而`Handle`即是对`Heap`中对象的引用。`V8`为了对内存分配进行管理，`GC`需要对`V8`中的所有对象进行跟踪，而对象都是用`Handle`方式引用的，所以`GC`需要对`Handle`进行管理，这样`GC`就能知道`Heap`中一个对象的引用情况，当一个对象的`Handle`引用为发生改变的时候，`GC`即可对该对象进行回收或者移动。因此，`V8`编程中必须使用`Handle`去引用一个对象，而不是直接通过C++的方式去获取对象的引用，直接通过C++的方式直接去引用一个对象，会使得该对象无法被`V8`管理。
 
-一个函数中，可以有很多Handle，而`HandleScope`则相当于用来装`Handle（Local）`的容器，当`HandleScope`生命周期结束的时候，`Handle`也将会被释放，会引起`Heap`中对象引用的更新。`HandleScope`是分配在栈上，不能通过`New`的方式进行创建。对于同一个作用域内可以有多个`HandleScope`，新的`HandleScope`将会覆盖上一个`HandleScope`，并对`Local Handle`进行管理。
+>`Handle`分为`Local`和`Persistent`两种。从字面上就能知道，`Local`是局部的，它同时被`HandleScope`进行管理。`Persistent`，类似全局的，不受`HandleScope`的管理，其作用域可以延伸到不同的函数，而`Local`是局部的，作用域比较小。`Persistent Handle`对象需要`Persistent::New`, `Persistent::Dispose`配对使用，类似于C++中`new`和`delete`。
 
-解释完`HandleScope`，我们实例化`ThreadJob`类，然后包装过后的`work`函数以及回调函数保存，最后调用`uv_queue_work`启动libuv的线程池来执行`LibuvThread::workerCallback`方法。
+>一个函数中，可以有很多Handle，而`HandleScope`则相当于用来装`Local Handle`的容器，当`HandleScope`生命周期结束的时候，`Handle`也将会被释放，会引起`Heap`中对象引用的更新。`HandleScope`是分配在栈上，不能通过`New`的方式进行创建。对于同一个作用域内可以有多个`HandleScope`，新的`HandleScope`将会覆盖上一个`HandleScope`，并对`Local Handle`进行管理。
 
-`uv_queue_work`是`libuv`库里的方法，他表示将需要异步执行的方法丢入到`libuv`自己管理的线程池中去执行，在执行完毕之后会执行回调函数。
+我们先实例化`ThreadJob`类，然后保存包装过后的`work`函数以及回调函数，最后调用`uv_queue_work`启动libuv的线程池来执行`LibuvThread::workerCallback`方法。
+
+`uv_queue_work`是`libuv`库里的方法，它表示将需要子线程执行的函数丢入到`libuv`自己管理的线程池中去执行，在完毕之后会执行回调函数。
 
 `LibuvThread::workerCallback`静态方法是在子线程中执行的，这里我们首先创建了一个新的`v8`实例：
 
@@ -981,7 +985,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 
 因为`v8`的`Isolate`实例不是线程安全的，所以如果当前`v8`的实例使用了`Locker`，我们就得在进入新创建的`Isolate`实例前执行`Locker`操作。
 
-`LibuvThread::threadWork`方法是将之前js包装的`work`函数进行编译和执行，然后将结果保存下来。同时如果在执行过程中有任何异常的抛出也需要保存下来，供最后的回调函数使用。
+`LibuvThread::threadWork`方法是将之前js包装的`work`函数进行编译和执行，然后将运行结果保存下来。同时如果在执行过程中有任何异常的抛出也需要保存下来，供最后的回调函数使用。
 
     void LibuvThread::threadWork(ThreadJob *req_p){//线程中执行
         HandleScope scope;
@@ -1008,7 +1012,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
         context.Dispose();//释放资源
     }
 
-线程执行完毕之后，将会回到主线程执行`LibuvThread::afterWorkerCallback`回调函数，它主要是将在线程中js代码执行的结果作为参数传递给开发者传入的回调函数。
+线程执行完毕之后，将会回到主线程执行`LibuvThread::afterWorkerCallback`回调函数，它的工作是将在线程中js代码的执行结果作为参数传递给之前传入的js回调函数。
 
     void LibuvThread::afterWorkerCallback(uv_work_t *req, int status){//子线程执行完毕
         HandleScope scope;
@@ -1027,12 +1031,14 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
         delete req_p;
     }
 
+我们首先创建一个数组`argv`，判断如果发生异常，则将数组的第一个参数也就是`error`赋值，如果没有发生异常，则赋值数组的第二个参数`result`，接着将数组`argv`作为参数，执行js的回调函数。
+
 这样我们`libuv_thread`包的代码开发部分就告一段落了，最后我们创建`binding.gyp`文件，描述编译后的文件名以及使用到的源文件：
 
     {
       "targets":[
         {
-          "target_name": "uv_thread",
+          "target_name": "uv_thread",//注意这里的名称必须和之前 libuvThread.cc 定义的一致
           "sources": ["src/libuvThread.cc","src/libuvThreadClass.cc"]
         }
       ]
@@ -1041,17 +1047,17 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 在包的根目录，我们执行命令`node-gyp rebuild`重新编译C++代码后，会在`build/release/`文件夹下生成`uv_thread.node`文件，这个文件就是我们Node.js需要`require`的。
 
 ##包的测试
-在`npm`上包的数量繁多，种类也繁多，如何选择靠谱的包作为我们的开发工具非常重要，其中有一个重要因素就是这个包是否具有完善的测试代码。下面将为我们刚才完成的`libuv_thread`包编写测试代码。
+在`npm`上包的数量繁多，种类也繁多，如何选择靠谱的包作为我们的开发工具非常重要，其中有一个重要条件就是这个包是否具有完善的测试代码。下面将为我们刚才完成的`libuv_thread`包编写测试代码。
 
 ###构思测试用例
-我们的`libuv_thread`包具有线程工作的能力，可以将工作函数丢入子线程执行，当执行完毕又可以将运算结果回调到主线程，同时还具有当工作函数抛出异常时，主线程的回调函数的第一个参数将能够接受这些异常。
+我们的`libuv_thread`包具有线程工作的能力，可以将工作函数丢入子线程执行，当执行完毕后将运算结果回调到主线程，同时还具有当工作函数抛出异常时，主线程的回调函数的第一个参数将能够接受这些异常的功能。
 
-这样我们的测试用例基本也定型了，一个正常工作的用例和一个肯定会抛出异常的用例。
+综上我们的测试用例基本也定型了，一个正常工作的用例和一个肯定会抛出异常的用例。
 
 ###should模块
-由于测试相对简单，我们这次并没有使用任何测试框架，而使用了相对简单的`should`模块，关于`mocha`测试框架的介绍，本书后面会有介绍。
+由于测试相对简单，我们这次并没有使用任何测试框架，而使用了相对简单的`should`模块，关于热门`mocha`测试框架的介绍，本书后面会有介绍。
 
-`should`模块类似于Node.js核心模块中的`assert`，断言某一种情况是否成立，安装它也非常简单`npm install should`，它的简单用法如下：
+`should`模块类似于Node.js核心模块中的`assert`，断言某一种情况是否成立，安装它非常简单`npm install should`，它的简单用法如下：
 
     var should = require('should');
     var user = {
@@ -1069,7 +1075,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
         result.bar.should.equal(foo);
     });
 
-还有一些常用的`should`静态方法：
+这里还列出了一些常用的`should`静态方法：
 
     assert.fail(actual, expected, message, operator)
     assert(value, message), assert.ok(value, [message]) 
@@ -1083,8 +1089,11 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
     assert.doesNotThrow(block, [message])
     assert.ifError(value)
 
+具体`should`模块的使用方法请参阅：[https://github.com/visionmedia/should.js/](https://github.com/visionmedia/should.js/)。
+
 ###编写测试代码
-有了我们之前设计的测试用例和`should`模块，很容易就编写完成了一个简单的测试文件，我们把它保存在`test/test.js`。
+有了我们之前设计的测试用例和`should`模块，很容易就编写完成了一个简单的测试文件，我们把它保存为`./test/test.js`。
+
     var should = require('should');
     var thread = require('../');
 
@@ -1104,12 +1113,12 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
       should.equal(count, '1');
     })
 
-我们先模拟一个必须会抛出y没有定义的情形，然后再模拟一个正常的情况，如果测试通过Node.js进程将自动退出不会抛出异常。
+我们先模拟一个必然会抛出变量`y`没有定义的异常的情况，然后再模拟一个正常的情况，如果测试通过Node.js进程将自动退出不抛出任何异常。
 
 ###性能测试
 为包编写了单元测试代码之后，我们也想了解下`libuv_thread`包他的性能如何？和之前的`tagg2`包在同样的情况下性能是提升还是下降呢？
 
-我们创建`benchmark/benchmark.js`文件，代码如下：
+我们创建`benchmark/benchmark.js`文件，测试代码如下：
 
     var express = require('express');
     var thread = require('../');
@@ -1175,29 +1184,29 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
       99%   5588
      100%   5588 (longest request)
 
-根据压力测试结果我们发现使用我们的新包`libuv_thread`性能和之前的`tagg2`包差不多，不过因为我们利用了`libuv`库，所以开发起来代码量还是少了不少。
+根据压力测试结果我们发现使用我们的新包`libuv_thread`性能和之前的`tagg2`包差不多，不过因为我们利用了`libuv`库，所以开发起来代码量少了很多。
 
 ##跨平台测试
 Node.js天生就是跨平台的，同样`libuv`库，`node-gyp`命令等都是跨平台支持的，当然我们开发的Node.js包也必须跨平台支持，不能拖了后腿。
 
-跨平台测试主要还是需要不通操作系统来进行测试，有条件当然真机测试，`linux`，`windows`和`mac`各跑一遍，没有条件就安装`vmware`虚拟机测试，也可以达到相同的效果。
+跨平台测试主要还是需要到不同操作系统上进行测试，有条件当然是进行真机测试，`linux`，`windows`和`mac`各跑一遍，没有条件就安装`vmware`虚拟机测试，也可以达到相同的效果。
 
-在进行Node.js跨平台开发过程中，文件的目录是最容易出现不兼容的地方，`linux`系统下是没有类似`windows`下`c盘`，`d盘`等的的概念的，根目录是以`/`开头的，同样目录分隔符号`linux`和`windows`的斜杠也是不通的。第二个容易造成不兼容的地方是依赖的操作系统命令，比如`ls`,`ln -s`,`mkdir`等等都是在`linux`下的命令，在`windows`中是不可以使用的。第三个容易造成不兼容的地方就是在编写C++插件时编译器的不同，`linux`下的`gcc`和`windows`下的`Visual C++`还是有区别的。
+在进行Node.js跨平台开发过程中，文件的目录路径是最容易出现不兼容的地方，`linux`系统下是没有类似`windows`下`c盘`，`d盘`等的概念的，根目录是以`/`开头的，同样目录分隔符号`linux`和`windows`的斜杠也是不同的。第二个容易造成不兼容的地方是依赖的操作系统命令，比如`ls`,`ln -s`,`mkdir`等等都是在`linux`下的命令，在`windows`中是不可以使用的。第三个容易造成不兼容的地方就是在编写C++插件时编译器的不同，`linux`下的`gcc`和`windows`下的`Visual C++`是有一定区别的。
 
 ##readme.md制作
-在发布到`npm`之前，我们需要让开发者知道我们发布上去的这个包是做什么用的，包的使用说明，对开发者的api说明和简单的例子，所以在包的根目录`readme.md`说明文件必不可少。
+在发布到`npm`之前，我们需要让开发者知道我们发布上去的包是做什么用的，对开发者提供的api说明和简单的运行示例，所以在包的根目录`readme.md`说明文件必不可少。
 
 ##发布到github
-`github`作为开源代码的仓库已经被越来越多的开发者青睐，通过将自己的代码开源在`github`上，让更多的人参与进来，开发新的功能或者反馈问题提交debug代码。同时将自己的开源项目放在`github`上也会有更多的机会被其他开发者搜索到和使用，毕竟自己辛勤的劳动成果能够被别人所认可也是很欣慰的一件事情。
+`github`作为开源代码的仓库已经被越来越多的开发者所青睐，通过将自己的代码开源在`github`上，可以让更多的人参与进来，开发新的功能或者反馈问题提交debug代码。而且将自己的开源项目放在`github`上也会有更多的机会被其他开发者搜索和使用，毕竟自己辛勤的劳动成果能够被别人所认可也是很欣慰的一件事情。
 
-我们还可以方便的使用`github`自己开发的桌面程序，在不同机器上随时随地的`clone`和`commit`代码。
+我们可以方便的使用`github`自己开发的桌面程序，在不同机器上随时随地的`clone`和`commit`代码。
 
 ##发布到npm
 丑媳妇终要见公婆，我们辛辛苦苦写完的`libuv_thread`包终于还是要发布到`npm`上供大家下载使用的，`npm`是Node.js包的管理平台，本书之前已经做过简单的介绍，这里我们将把之前开发好的`libuv_thread`包发布到`npm`上。
 
-在把包发布到`npm`上之前，我们需要注册一个`npm`帐号，需要通过命令`npm adduser`来注册，根据命令行的提示输入好用户名，密码，Email，所在地等相关信息后就完成了注册。
+在把包发布到`npm`上之前，我们需要注册一个`npm`帐号，通过命令`npm adduser`来注册，根据命令行的提示输入好用户名，密码，Email，所在地等相关信息后就可以完成注册了。
 
-随后我们进入`libuv_thread`包的根目录，执行`npm publish`命令，等待一段时间后就可以完成发布了。
+随后我们进入`libuv_thread`包的根目录，执行`npm publish`命令，等待一段时间后就可以完成发布。
 
     npm http PUT https://registry.npmjs.org/libuv_thread
     npm http 409 https://registry.npmjs.org/libuv_thread
@@ -1209,20 +1218,22 @@ Node.js天生就是跨平台的，同样`libuv`库，`node-gyp`命令等都是�
     npm http 201 https://registry.npmjs.org/libuv_thread/0.1.0/-tag/latest
     + libuv_thread@0.1.0
 
-上面的打印信息表示我们发布了`libuv_thread`包的`0.1.0`版本，随后我们可以在各个操作系统上执行`npm install libuv_thread`命令来安装和测试。
+上面的打印信息表示我们发布了`libuv_thread`包的`0.1.0`版本，随后我们可以在各个操作系统上执行`npm install libuv_thread`命令进行安装和测试。
+
+`libuv_thread`包的github开源项目地址：[https://github.com/DoubleSpout/nodeLibuvThread](https://github.com/DoubleSpout/nodeLibuvThread)。
 
 ##总结
-在开发Node.js项目时，我们一定要学会使用各种各样包来解决我们的问题，这样可以大大的提升开发效率。`package.json`不仅是作为包的说明配置文件，同样我们每一个Node.js项目根目录都会包含它作为项目的配置说明文件。
+在开发Node.js项目时，我们一定要学会使用各种各样的包来为我们服务，这样可以大大的提升开发效率。`package.json`不仅是作为包的说明配置文件，同样我们每一个Node.js项目根目录都应该包含它作为项目的配置说明文件。
 
-本章我们还从无到有完成了一个利用`libuv`库让Node.js支持多线程开发的`libuv_thread`包，他实现的功能与之前的`tagg2`是类似的，但是代码量却少了很多，`libuv`库确实提供了强大的功能和跨平台的便利性。
+本章我们从无到有完成了一个利用`libuv`库让Node.js支持多线程开发的`libuv_thread`包，他实现的功能与之前的`tagg2`是类似的，但是代码量却少了很多，`libuv`库确实提供了强大的功能和跨平台的便利性。
 
-本章还介绍了一些简单的`v8`引擎的嵌入式开发，通过c++插件的支持可以让我们的Node.js拥有更多的功能，比如我之前有开发过一个Node.js便携式验证码包`ccap`，这个包不同于其他Node.js验证码包需要安装很多依赖，只需要在有`node-gyp`环境的系统下`npm install ccap`就可以完成安装并投入使用了，它的工作原理也很简单，只是对图形库`CIMG`做了一个封装，让js可以调用`CIMG`库的一些api而已。
+本章还介绍了一些简单的`v8`引擎的嵌入式开发，通过C++插件的支持可以让我们的Node.js拥有更多更强大的功能。比如我之前有开发过一个Node.js便携式验证码包`ccap`，这个包不同于其他Node.js验证码包需要安装很多依赖，只需要在有`node-gyp`环境的系统下`npm install ccap`就可以完成安装并投入使用了，它的工作原理也很简单，只是对图形库`CIMG`做了一个封装，让js可以调用`CIMG`库的一些api而已。
 
-当然并不是所有情况c++插件都可以让Node.js有性能上的提升，因为Node.js和c++互相调用也会造成损耗，而且c++代码开发起来相比动态的js效率还是差一些的，所以能用js解决的问题尽量不要去写c++插件。
+当然并不是所有情况下C++插件都可以让Node.js有性能上的提升，因为Node.js和C++互相调用也会造成损耗，而且C++代码开发起来相比动态的js效率还是差一些的，所以能用js解决的问题尽量不要去写C++插件。
 
 我们在开发完`libuv_thread`包后还补上了测试代码，对包的测试代码一定要写，以后就算我们有代码变动发布新版本，跑一下测试用例心里也有个底。
 
-最后我们将开发的`libuv_thread`包发布到了`github`和`npm`上，可以让开发者方便的下载和使用我们的开源Node.js包。
+最后我们将开发的`libuv_thread`包发布到了`github`和`npm`上，这是个好习惯，可以让开发者方便的下载和使用我们的开源Node.js包。
 
 #参考文献：
 - <https://github.com/TooTallNate/node-gyp> node-gyp
@@ -1230,5 +1241,6 @@ Node.js天生就是跨平台的，同样`libuv`库，`node-gyp`命令等都是�
 - <http://stackoverflow.com/questions/9510822/what-is-the-design-rationale-behind-handlescope> what-is-the-design-rationale-behind-handlescope
 - <https://code.google.com/p/v8/> Google v8
 - <https://github.com/joyent/libuv> libuv by joyent
+- <https://github.com/visionmedia/should.js/> shouldjs
 - <http://blog.csdn.net/feiyinzilgd/article/details/8249180> Google V8编程详解（三）Handle & HandleScope
 
