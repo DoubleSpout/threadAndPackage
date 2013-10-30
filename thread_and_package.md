@@ -961,6 +961,8 @@ Jorge Chamorro Bieling是tagg(Threads a gogo for Node.js)模块的作者，他�
 
 解释完`HandleScope`，我们实例化`ThreadJob`类，然后包装过后的`work`函数以及回调函数保存，最后调用`uv_queue_work`启动libuv的线程池来执行`LibuvThread::workerCallback`方法。
 
+`uv_queue_work`是`libuv`库里的方法，他表示将需要异步执行的方法丢入到`libuv`自己管理的线程池中去执行，在执行完毕之后会执行回调函数。
+
 `LibuvThread::workerCallback`静态方法是在子线程中执行的，这里我们首先创建了一个新的`v8`实例：
 
     void LibuvThread::workerCallback(uv_work_t* req){ //子线程中执行代码
@@ -1190,13 +1192,39 @@ Node.js天生就是跨平台的，同样`libuv`库，`node-gyp`命令等都是�
 ##发布到github
 `github`作为开源代码的仓库已经被越来越多的开发者青睐，通过将自己的代码开源在`github`上，让更多的人参与进来，开发新的功能或者反馈问题提交debug代码。同时将自己的开源项目放在`github`上也会有更多的机会被其他开发者搜索到和使用，毕竟自己辛勤的劳动成果能够被别人所认可也是很欣慰的一件事情。
 
-我们还可以方便的使用`github`自己开发的桌面程序，随时随地的`clone`和`commit`代码。
+我们还可以方便的使用`github`自己开发的桌面程序，在不同机器上随时随地的`clone`和`commit`代码。
 
 ##发布到npm
+丑媳妇终要见公婆，我们辛辛苦苦写完的`libuv_thread`包终于还是要发布到`npm`上供大家下载使用的，`npm`是Node.js包的管理平台，本书之前已经做过简单的介绍，这里我们将把之前开发好的`libuv_thread`包发布到`npm`上。
 
+在把包发布到`npm`上之前，我们需要注册一个`npm`帐号，需要通过命令`npm adduser`来注册，根据命令行的提示输入好用户名，密码，Email，所在地等相关信息后就完成了注册。
 
+随后我们进入`libuv_thread`包的根目录，执行`npm publish`命令，等待一段时间后就可以完成发布了。
 
+    npm http PUT https://registry.npmjs.org/libuv_thread
+    npm http 409 https://registry.npmjs.org/libuv_thread
+    npm http GET https://registry.npmjs.org/libuv_thread
+    npm http 200 https://registry.npmjs.org/libuv_thread
+    npm http PUT https://registry.npmjs.org/libuv_thread/-/libuv_thread-0.1.0.tgz/-rev/17-1afe1dd3c678bcb49901bc0d03253675
+    npm http 201 https://registry.npmjs.org/libuv_thread/-/libuv_thread-0.1.0.tgz/-rev/17-1afe1dd3c678bcb49901bc0d03253675
+    npm http PUT https://registry.npmjs.org/libuv_thread/0.1.0/-tag/latest
+    npm http 201 https://registry.npmjs.org/libuv_thread/0.1.0/-tag/latest
+    + libuv_thread@0.1.0
 
+上面的打印信息表示我们发布了`libuv_thread`包的`0.1.0`版本，随后我们可以在各个操作系统上执行`npm install libuv_thread`命令来安装和测试。
+
+##总结
+在开发Node.js项目时，我们一定要学会使用各种各样包来解决我们的问题，这样可以大大的提升开发效率。`package.json`不仅是作为包的说明配置文件，同样我们每一个Node.js项目根目录都会包含它作为项目的配置说明文件。
+
+本章我们还从无到有完成了一个利用`libuv`库让Node.js支持多线程开发的`libuv_thread`包，他实现的功能与之前的`tagg2`是类似的，但是代码量却少了很多，`libuv`库确实提供了强大的功能和跨平台的便利性。
+
+本章还介绍了一些简单的`v8`引擎的嵌入式开发，通过c++插件的支持可以让我们的Node.js拥有更多的功能，比如我之前有开发过一个Node.js便携式验证码包`ccap`，这个包不同于其他Node.js验证码包需要安装很多依赖，只需要在有`node-gyp`环境的系统下`npm install ccap`就可以完成安装并投入使用了，它的工作原理也很简单，只是对图形库`CIMG`做了一个封装，让js可以调用`CIMG`库的一些api而已。
+
+当然并不是所有情况c++插件都可以让Node.js有性能上的提升，因为Node.js和c++互相调用也会造成损耗，而且c++代码开发起来相比动态的js效率还是差一些的，所以能用js解决的问题尽量不要去写c++插件。
+
+我们在开发完`libuv_thread`包后还补上了测试代码，Node.js是单线程的所以任何的bug都会奔溃整个进程，所以我们在开发时要非常小心，测试代码一定要写，以后就算我们有代码变动发布新版本，跑一下测试用例心里也有个底了。
+
+最后我们将开发的`libuv_thread`包发布到了`github`和`npm`上，可以让开发者方便的下载和使用我们的开源Node.js包。
 
 #参考文献：
 - <https://github.com/TooTallNate/node-gyp> node-gyp
