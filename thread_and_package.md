@@ -1,5 +1,5 @@
 #Node.js的线程和进程
-早期有很多关于Node.js的争论焦点在它的单线程模型方面，由Jani Hartikainen写的一篇著名的文章《PHP优于Node.js的五大理由》中更有一条矛头直接指向Node.js单线程脆弱的问题。
+早期有很多关于Node.js争论的焦点都在它的单线程模型方面，由Jani Hartikainen写的一篇著名的文章《PHP优于Node.js的五大理由》中更有一条矛头直接指向Node.js单线程脆弱的问题。
 
 >如果PHP代码损坏，不会拖垮整个服务器
  PHP代码只运行在自己的进程范围中，当某个请求显示错误时，它只对特定的请求产生影响。而在Node.js环境中，所有的请求均在单一的进程服务中，当某个请求导致未知错误时，整个服务都会受到影响。
@@ -24,7 +24,7 @@ PHP的模型：
     |         | |         | |         |
     | THREAD  | | THREAD  | | THREAD  | 
     +----+----+ +----+----+ +----+----+ 
-     |               |           | 
+         |           |           | 
     +---------+ +---------+ +---------+ 
     | REQUEST | | REQUEST | | REQUEST | 
     +---------+ +---------+ +---------+ 
@@ -42,9 +42,9 @@ Node.js的模型：
     |                                   | 
     +----+------------+------------+----+ 
          |            |            | 
-    +---------+ +---------+ +---------+ 
-    | REQUEST | | REQUEST | | REQUEST | 
-    +---------+ +---------+ +---------+
+    +---------+  +---------+  +---------+ 
+    | REQUEST |  | REQUEST |  | REQUEST | 
+    +---------+  +---------+  +---------+
 
 所以你在编写Node.js代码时要保持清醒的头脑，任何一个隐藏着的异常被触发后，都会将整个Node.js进程崩溃。但是这样的特性也为我们编写代码带来便利，比如同样要实现一个简单的网站访问次数统计，Node.js只需要在内存里定义一个变量`var count=0;`，每次有用户请求过来执行`count++;`即可。
 
@@ -72,7 +72,7 @@ Node.js的模型：
 Google的`V8 Javascript`引擎已经在Chrome浏览器里证明了它的性能，所以Node.js的作者Ryan Dahl选择了`v8`作为Node.js的执行引擎，`v8`赋予Node.js高效的性能同时也注定了Node.js和大名鼎鼎Nginx一样，都是以单线程作为基础的，当然这也正是作者Ryan Dahl设计Node.js的初衷。
 
 ##单线程的优缺点
-Node.js的单线程具有它的优势，同时并非十分完美，在保持单线程模型的同时他是如何保证非阻塞呢？
+Node.js的单线程具有它的优势，同时也并非十分完美，在保持单线程模型的同时它是如何保证非阻塞的呢？
 
 ###高性能
 首先，单线程避免了传统PHP那样频繁创建、切换线程的开销，使执行速度更加迅速。
@@ -126,7 +126,7 @@ Node.js是单线程的，但是它如何做到I/O的异步和非阻塞的呢？�
 线程是cpu调度的一个基本单位，一个cpu同时只能执行一个线程的任务，同样一个线程任务也只能在一个cpu上执行，所以如果你运行Node.js的机器是像i5，i7这样多核cpu，那么将无法充分利用多核cpu的性能来为Node.js服务。
 
 ##多线程
-在C++、C#、python等其他服务端语言都有与之对应的多线程编程，有些时候这很有趣，带给我们灵活的编程方式；但是也可能带给我们一堆麻烦，需要学习更多的Api知识，在编写更多代码代码的同时也存在着更多的风险，线程的切换和锁也会造成系统资源的开销。
+在C++、C#、python等其他服务端语言都有与之对应的多线程编程，有些时候这很有趣，带给我们灵活的编程方式；但是也可能带给我们一堆麻烦，需要学习更多的Api知识，在编写更多代码的同时也存在着更多的风险，线程的切换和锁也会造成系统资源的开销。
 
 就像上面的那个例子，如果我们的Node.js有创建子线程的能力，那问题就迎刃而解了：
 
@@ -142,7 +142,7 @@ Node.js是单线程的，但是它如何做到I/O的异步和非阻塞的呢？�
 可惜也可以说可喜的是Node.js的核心模块并没有提供这样的api给我们，我们真的不想多线程又回归回来。不过或许多线程真的能够解决我们某方面的问题。
 
 ###tagg2模块
-Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他硬是利用`phread`库和C语言让Node.js支持了多线程的开发，我们看一下tagg模块的简单示例：
+Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬是利用`phread`库和C语言让Node.js支持了多线程的开发，我们看一下tagg模块的简单示例：
     
     var Threads = require('threads_a_gogo');
     function fibo(n) {
@@ -155,14 +155,14 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
     });
     console.log('not block');//打印信息了，表示没有阻塞
 
-上面这段代码利用tagg模块将`fibo(35)`这个计算丢入了子线程中进行，保证了Node.js主线程的舒畅，当子线程任务执行完毕将会执行主线程的回调函数，把结果打印到屏幕上，执行结果如下：
+上面这段代码利用`tagg`包将`fibo(35)`这个计算丢入了子线程中进行，保证了Node.js主线程的舒畅，当子线程任务执行完毕将会执行主线程的回调函数，把结果打印到屏幕上，执行结果如下：
 
     not block
     fibo(35)=14930352
 
-由于`tagg`模块目前只能在`linux`下安装运行，所以我fork了一个分支，修改了部分`tagg`模块的代码，发布了`tagg2`包。`tagg2`包同样具有`tagg`模块的多线程功能，采用新的node-gyp命令进行编译，同时它跨平台支持，`mac`，`linux`，`windows`下都可以编译安装，对开发人员的api也更加友好。安装方法很简单，直接`npm install tagg2`。
+由于`tagg`包目前只能在`linux`下安装运行，所以我fork了一个分支，修改了部分`tagg`包的代码，发布了`tagg2`包。`tagg2`包同样具有`tagg`包的多线程功能，采用新的`node-gyp`命令进行编译，同时它跨平台支持，`mac`，`linux`，`windows`下都可以编译安装，对开发人员的api也更加友好。安装方法很简单，直接`npm install tagg2`。
 
-一个利用tagg2计算斐波那契数组的http服务器代码：
+一个利用`tagg2`计算斐波那契数组的http服务器代码：
 
     var express = require('express');
     var tagg2 = require("tagg2")
@@ -186,7 +186,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
     app.listen(8124);
     console.log('listen on 8124');
 
-我们利用`express`框架搭建了一个web服务器，根据用户发送的参数`n`的值来创建子线程计算斐波那契数组，当子线程计算完毕之后将结果响应给客户端。由于计算是丢入子线程中运行的，所以整个主线程不会被阻塞，还是能够继续处理新请求的。
+我们用`express`框架搭建了一个web服务器，根据用户发送的参数`n`的值来创建子线程计算斐波那契数组，当子线程计算完毕之后将结果响应给客户端。由于计算是丢入子线程中运行的，所以整个主线程不会被阻塞，还是能够继续处理新请求的。
 
 我们利用`apache`的http压力测试工具`ab`来进行一次简单的压力测试，看看执行斐波那契数组35次，100客户端并发100个请求，我们的`QPS (Query Per Second)`每秒查询率在多少。
 
@@ -235,9 +235,9 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
       99%   5602
      100%   5602 (longest request)
 
-我们可以看到`Requests per second`表示每秒我们服务器处理的任务数量，这里是`17.84`。第二个我们比较关心的是两个`Time per request`结果，上面一行`Time per request:5605.769 [ms](mean)`表示当前这个并发量下处理每组请求的时间，而下面这个`Time per request:56.058 [ms](mean, across all concurrent requests)`表示每个用户平均处理时间，因为我们本次测试并发是100，所以结果正好是上一行的100分之1。得出本次测试平均每个用户请求的平均等待时间为`56.058 [ms]`。
+我们看到`Requests per second`表示每秒我们服务器处理的任务数量，这里是`17.84`。第二个我们比较关心的是两个`Time per request`结果，上面一行`Time per request:5605.769 [ms](mean)`表示当前这个并发量下处理每组请求的时间，而下面这个`Time per request:56.058 [ms](mean, across all concurrent requests)`表示每个用户平均处理时间，因为我们本次测试并发是100，所以结果正好是上一行的100分之1。得出本次测试平均每个用户请求的平均等待时间为`56.058 [ms]`。
 
-另外我们看下最后带有百分比的列表，我们可以看到50%的用户是在`5531 ms`以内返回的，最慢的也不过`5602 ms`，响应延迟非常的平均。
+另外我们看下最后带有百分比的列表，可以看到50%的用户是在`5531 ms`以内返回的，最慢的也不过`5602 ms`，响应延迟非常的平均。
 
 我们如果用`cluster`来启动4个进程，是否可以充分利用cpu达到`tagg2`那样的`QPS`呢？我们在同样的网络环境和测试机上运行如下代码：
 
@@ -261,7 +261,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
         console.log('listen on 8124');
     }
 
-可以看到，在终端屏幕上打印了4行信息：
+在终端屏幕上打印了4行信息：
 
     listen on 8124
     listen on 8124
@@ -307,7 +307,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
       99%  10504
      100%  10504 (longest request)
 
-通过和上面`tagg2`包的测试结果对比，我们发现区别很大。首先我们每秒处理的任务数从`17.84 [#/sec]`下降到了`9.52 [#/sec]`，这说明我们web服务器整体的吞吐率下降了；然后每个用户请求的平均等待时间也从`56.058 [ms]`提高到了`105.088 [ms]`，用户等待的时间也更长了。
+通过和上面`tagg2`包的测试结果对比，我们发现区别很大。首先每秒处理的任务数从`17.84 [#/sec]`下降到了`9.52 [#/sec]`，这说明我们web服务器整体的吞吐率下降了；然后每个用户请求的平均等待时间也从`56.058 [ms]`提高到了`105.088 [ms]`，用户等待的时间也更长了。
 
 最后我们发现用户请求处理的时长非常的不均匀，50%的用户在`2934 ms`内返回了，最慢的等待达到了`10504 ms`。虽然我们使用了`cluster`启动了4个Node.js进程处理用户请求，但是对于每个Node.js进程来说还是单线程的，所以当有4个用户跑满了4个Node.js的`cluster`进程之后，新来的用户请求就只能等待了，最后造成了先到的用户处理时间短，后到的用户请求处理时间比较长。
 
@@ -322,20 +322,21 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 
 ###libuv
 最后，如果我们非要让Node.js支持多线程，还是提倡使用官方的做法，利用`libuv`库来实现。
+
 >`libuv`是一个跨平台的异步I/O库，它主要用于Node.js的开发，同时他也被`Mozilla's Rust language`, `Luvit`, `Julia`, `pyuv`等使用。它主要包括了`Event loops`事件循环，`Filesystem`文件系统，`Networking`网络支持，`Threads`线程，`Processes`进程，`Utilities`其他工具。
 
 在Node.js核心api中的异步多线程大多是使用`libuv`来实现的，下一章将带领大家开发一个基于`libuv`的Node.js包。
 
 ##多进程
-在支持html5的浏览器里，我们可以使用webworker来将一些耗时的计算丢入worker进程中执行，这样主进程就不会阻塞，用户也就不会有卡顿的感觉了。在Node.js中是否也可以使用这类技术，保证主线程的通畅呢？
+在支持html5的浏览器里，我们可以使用`webworker`来将一些耗时的计算丢入worker进程中执行，这样主进程就不会阻塞，用户也就不会有卡顿的感觉了。在Node.js中是否也可以使用这类技术，保证主线程的通畅呢？
 
 ###cluster
 `cluster`可以用来让Node.js充分利用多核cpu的性能，同时也可以让Node.js程序更加健壮，官网上的`cluster`示例已经告诉我们如何重新启动一个因为异常而奔溃的子进程。详细的`cluster`模块使用教程在本书的`部署Node.js`一章会有详细介绍。
 
 ###webworker
-想要像在浏览器端那样启动`worker`进程，我们需要利用Node.js核心api里的`child_process`模块。`child_process`模块提供了`fork`的方法，可以启动一个Node.js文件，将它作为`worker`进程，当worker进程工作完毕，不把结果通过`send`方法传递给主进程，然后自杀，这样我们也就利用了多进程来解决主线程阻塞的问题了。
+想要像在浏览器端那样启动worker进程，我们需要利用Node.js核心api里的`child_process`模块。`child_process`模块提供了`fork`的方法，可以启动一个Node.js文件，将它作为worker进程，当worker进程工作完毕，把结果通过`send`方法传递给主进程，然后自动退出，这样我们就利用了多进程来解决主线程阻塞的问题。
 
-我们先启动一个web服务，还是接受参数计算斐波那契数组：
+我们先启动一个web服务，还是接收参数计算斐波那契数组：
 
     var express = require('express');
     var fork = require('child_process').fork;
@@ -427,7 +428,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 
     node -e "console.log('hello world')"
 
-合理的利用这个特性我们就可以免去每次都创建一个文件的麻烦了.
+合理的利用这个特性我们就可以免去每次都创建一个文件的麻烦。
 
     var express = require('express');
     var spawn = require('child_process').spawn;
@@ -494,7 +495,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 3、然后判断文件的`MIME`类型，如果是类似`html`，`js`，`css`等静态资源，还需要`gzip`压缩之后传输给客户端
 4、最后将gzip压缩完成的静态文件响应给客户端。
 
-下面是一个正常成功的静态资源无缓存流程图：
+下面是一个正常成功的Node.js处理静态资源无缓存流程图：
 
     +----+----+ 
     | 客户端  | 
@@ -556,7 +557,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
     app.use(ifile.connect());  //默认值是 [['/static',__dirname]];        
     app.listen(8124);
 
-上面这4行代码就可以让`express`把静态资源交给`ifile`包来处理了，我们在这里对它进行了一个简单的压力测试，测试响应一个大小为`92kb`的`jquery.1.7.1.min.js`，测试命令：
+上面这4行代码就可以让`express`把静态资源交给`ifile`包来处理了，我们在这里对它进行了一个简单的压力测试，测试用例为响应一个大小为`92kb`的`jquery.1.7.1.min.js`，测试命令：
 
     ab -c 500 -n 5000 -H "Accept-Encoding: gzip" http://192.168.28.5:8124/static/jquery.1.7.1.min.js
 
@@ -660,9 +661,11 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 
 但是当我在`express`的谷歌论坛里贴上这些测试结果，并宣传`ifile`包的时候，`express`的作者TJ，给我泼了一盆冷水，他在回复中说道：
 
->请牢记你可能不需要这么高等级的吞吐率系统，就算是每月百万级别下载量的npm，也仅仅每秒处理17个请求而已，这样的压力PHP也可以处理（又黑了一把php）
+>请牢记你可能不需要这么高等级吞吐率的系统，就算是每月百万级别下载量的npm，也仅仅每秒处理17个请求而已，这样的压力PHP也可以处理（又黑了一把php）
 
 当然TJ一般不轻易回复别人，能够得到他的回复我也很意外。
+
+`ifile`包开源项目地址：[https://github.com/DoubleSpout/ifile](https://github.com/DoubleSpout/ifile)
 
 ##总结
 单线程的Node.js给我们编码带来了太多的便利和乐趣，我们应该时刻保持清醒的头脑，在写Node.js代码中切不可与PHP混淆，任何一个隐藏的问题都可能击溃整个线上正在运行的Node.js程序。
@@ -671,7 +674,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 
 线程/进程的使用并不是没有开销的，尽可能减少创建和销毁线程/进程的次数，可以提升我们系统整体的性能和出错的概率。
 
-最后请不要一味的追求高性能，高并发，因为我们可能不需要系统具有那么大的吞吐率。高效，敏捷，低成本的开发才是项目需要的，这也是为什么Node.js能够在众多开发语言中脱颖而出的关键。
+最后请不要一味的追求高性能和高并发，因为我们可能不需要系统具有那么大的吞吐率。高效，敏捷，低成本的开发才是项目所需要的，这也是为什么Node.js能够在众多开发语言中脱颖而出的关键。
 
 #参考文献：
 - <http://smashingnode.com> Smashing Node.JS By Guillermo Rauch
@@ -726,7 +729,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 
 我们开发完毕一个包，需要给开发者使用，所以我们必须编写详细而且正确无误的说明文档，那就是`readme.md`文件，它将详细的描述包的安装说明，解决的问题以及使用方法，最后如果有需要最好注明代码的开源协议。
 
-提供了详细的说明档我们还必须提供一些简单的例子供开发人员参考，可能有些人觉得看例子比代码更加直观，所以一般我们把包使用的示例代码放在`example`文件夹下。
+提供了详细的说明档我们还必须提供一些简单的例子供开发人员参考，可能有些人觉得看代码更加直观，所以一般我们把包使用的示例代码放在`example`文件夹下。
 
 在我们的包最终要上架`npm`之前，我们还必须对它做详细的测试，这不仅是对自己的代码负责，也是对包的使用者负责，我们将会把测试代码放在`test`文件夹下，同时我们要把测试脚本的调用方法写入`package.json`，这样包的使用者只需要在包的根目录执行`npm test`就可以运行这个包的测试用例，判断这个包是否安装成功。
 
@@ -779,12 +782,12 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 这里我们直接把`lib/libuvThread.js`的`exports`作为包的入口暴露给开发者。
 
 ###api设计
-我们想要实现简单的`tagg2`包那样让Node.js支持多线程的包，至少需要提供给开发者编写在线程中执行的工作函数的功能，而且这个工作函数需要动态的传入参数来执行，一旦工作函数执行完毕，需要告知Node.js主线程执行的结果，是出现了错误还是获得了执行结果，所以回调函数也是必须的。
+我们想要实现像`tagg2`包那样让Node.js支持多线程的包，至少需要提供给开发者编写在线程中执行的工作函数的功能，而且这个工作函数需要动态的传入参数来执行，一旦工作函数执行完毕，需要告知Node.js主线程执行的结果，是出现了错误还是获得了执行结果，所以回调函数也是必须的。
 
 总结起来，我们命名的`libuv_thread`包需要对开发者提供一个具有接受三个参数的接口：
   
-  * workFunc：开发者期望在线程中执行的工作函数，结果以`return`返回，出于简单规定返回值必须为字符串；
-  * argObject：在线程中执行的工作函数参数，出于简单我们会将参数强制转换为字符串；
+  * workFunc：开发者期望在线程中执行的工作函数，结果以`return`返回，出于简单，规定返回值必须为字符串；
+  * argObject：在线程中执行的工作函数参数，出于简单，我们会将参数强制转换为字符串；
   * callback：工作函数执行完毕后执行的回调函数，具有两个参数，`error`和`result`。
 
 ###api实现
@@ -802,7 +805,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
       libuvThreadCC(work,cb);
     }
 
-程序一开始我们动态的把C++插件加载进来，然后我们实现了接受三个参数的对外接口，通过对参数的一些合法性验证和包装之后，我们把包装后的`work`函数和回调函数`callback`丢到`libuvThreadCC`函数中去执行。`libuvThreadCC`下面会详细讲到，它主要实现了多线程的执行和`callback`函数的回调。
+程序一开始我们动态的把C++插件加载进来，然后我们实现了接收三个参数的对外接口，通过对参数的一些合法性验证和包装之后，我们把包装后的`work`函数和回调函数`callback`丢到`libuvThreadCC`函数中去执行。`libuvThreadCC`下面会详细讲到，它主要实现了多线程的执行和`callback`函数的回调。
 
 ##安装node-gyp
 在我们讨论`libuvThreadCC`函数之前，需要先介绍一下如何构建Node.js的C++插件。
@@ -873,7 +876,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 
 `node.h`和`v8.h`会由`node-gyp`链接进去，所以不需制定路径直接`include`就可以了，我们定义了一个`Method`方法，将返回js字符串`world`。然后我们定义对外的`exports`输出，为`exports`对象增加了属性名是`hello`的方法。
 
-最后通过`NODE_MODULE`将`init`和插件名`hello`连接起来，注意最后的`NODE_MODULE`没有分好，因为它不是一个函数。
+最后通过`NODE_MODULE`将`init`和插件名`hello`连接起来，注意最后的`NODE_MODULE`没有分号，因为它不是一个函数。
 
 然后我们创建`binding.gyp`文件，定义插件名和源文件路径：
 
@@ -937,14 +940,14 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 
 最后我们将实现这些接口，完成整个`libuv_thread`包的核心部分功能开发。
 
-我们先实现会被js调用的`LibuvThread::libuvThreadCC`静态方法，它将接受js传入的2个参数，并且调用`libuv`的线程池，将js包装的`work`函数字符串放入子线程中去执行。
+我们先实现会被js调用的`LibuvThread::libuvThreadCC`静态方法，它将接收js传入的2个参数，并且调用`libuv`的线程池，将js包装的`work`函数字符串放入子线程中去执行。
 
     Handle<Value> LibuvThread::libuvThreadCC(const Arguments& args){
       HandleScope scope;
       ThreadJob *t_job_p = new ThreadJob();
       String::Utf8Value v1(args[0]->ToString());
       t_job_p->strFunc = new char[strlen(*v1)+1];
-      strcpy(t_job_p->strFunc,*v1);//因为需要跨线程，所以需要将js字符串拷贝到char数组中
+      strcpy(t_job_p->strFunc,*v1);//因为跨线程，所以需要将js字符串拷贝到char数组中
       t_job_p->strFunc[strlen(*v1)] = '\0';
       t_job_p->callback = Persistent<Object>::New(args[1]->ToObject());
       t_job_p->uv_work.data = t_job_p;
@@ -957,7 +960,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 
 >在`V8`中，内存分配都是在`V8`的`Heap`中进行分配的，js的值和对象也都存放在`V8`的`Heap`中。这个`Heap`由`V8`独立的去维护，失去引用的对象将会被`V8`的`GC`处理掉并重新分配给其他对象。而`Handle`即是对`Heap`中对象的引用。`V8`为了对内存分配进行管理，`GC`需要对`V8`中的所有对象进行跟踪，而对象都是用`Handle`方式引用的，所以`GC`需要对`Handle`进行管理，这样`GC`就能知道`Heap`中一个对象的引用情况，当一个对象的`Handle`引用为发生改变的时候，`GC`即可对该对象进行回收或者移动。因此，`V8`编程中必须使用`Handle`去引用一个对象，而不是直接通过C++的方式去获取对象的引用，直接通过C++的方式直接去引用一个对象，会使得该对象无法被`V8`管理。
 
->`Handle`分为`Local`和`Persistent`两种。从字面上就能知道，`Local`是局部的，它同时被`HandleScope`进行管理。`Persistent`，类似全局的，不受`HandleScope`的管理，其作用域可以延伸到不同的函数，而`Local`是局部的，作用域比较小。`Persistent Handle`对象需要`Persistent::New`, `Persistent::Dispose`配对使用，类似于C++中`new`和`delete`。
+>`Handle`分为`Local`和`Persistent`两种。从字面上就能知道，`Local`是局部的，它同时被`HandleScope`进行管理。`Persistent`，类似全局的，不受`HandleScope`的管理，其作用域可以延伸到不同的函数，局部的`Local`作用域比较小。`Persistent Handle`对象需要`Persistent::New`和`Persistent::Dispose`配对使用，类似于C++中`new`和`delete`。
 
 >一个函数中，可以有很多Handle，而`HandleScope`则相当于用来装`Local Handle`的容器，当`HandleScope`生命周期结束的时候，`Handle`也将会被释放，会引起`Heap`中对象引用的更新。`HandleScope`是分配在栈上，不能通过`New`的方式进行创建。对于同一个作用域内可以有多个`HandleScope`，新的`HandleScope`将会覆盖上一个`HandleScope`，并对`Local Handle`进行管理。
 
@@ -1141,7 +1144,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
     app.listen(8124);
     console.log('listen on 8124');
 
-我们用上一章同样的ab命令来进行压力测试：
+我们用上一章同样的`ab`命令来进行压力测试：
 
     ab -c 100 -n 100 http://192.168.28.5:8124/?n=35
 
@@ -1189,7 +1192,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`模块的作者，他
 ##跨平台测试
 Node.js天生就是跨平台的，同样`libuv`库，`node-gyp`命令等都是跨平台支持的，当然我们开发的Node.js包也必须跨平台支持，不能拖了后腿。
 
-跨平台测试主要还是需要到不同操作系统上进行测试，有条件当然是进行真机测试，`linux`，`windows`和`mac`各跑一遍，没有条件就安装`vmware`虚拟机测试，也可以达到相同的效果。
+跨平台测试主要还是需要到不同操作系统上进行测试，有条件当然是真机测试，`linux`，`windows`和`mac`各跑一遍，没有条件就安装`vmware`虚拟机测试，也可以达到相同的效果。
 
 在进行Node.js跨平台开发过程中，文件的目录路径是最容易出现不兼容的地方，`linux`系统下是没有类似`windows`下`c盘`，`d盘`等的概念的，根目录是以`/`开头的，同样目录分隔符号`linux`和`windows`的斜杠也是不同的。第二个容易造成不兼容的地方是依赖的操作系统命令，比如`ls`,`ln -s`,`mkdir`等等都是在`linux`下的命令，在`windows`中是不可以使用的。第三个容易造成不兼容的地方就是在编写C++插件时编译器的不同，`linux`下的`gcc`和`windows`下的`Visual C++`是有一定区别的。
 
@@ -1199,10 +1202,10 @@ Node.js天生就是跨平台的，同样`libuv`库，`node-gyp`命令等都是�
 ##发布到github
 `github`作为开源代码的仓库已经被越来越多的开发者所青睐，通过将自己的代码开源在`github`上，可以让更多的人参与进来，开发新的功能或者反馈问题提交debug代码。而且将自己的开源项目放在`github`上也会有更多的机会被其他开发者搜索和使用，毕竟自己辛勤的劳动成果能够被别人所认可也是很欣慰的一件事情。
 
-我们可以方便的使用`github`自己开发的桌面程序，在不同机器上随时随地的`clone`和`commit`代码。
+我们可以方便的使用`github`官方开发的桌面程序，在不同机器上随时随地的`clone`和`commit`代码。
 
 ##发布到npm
-丑媳妇终要见公婆，我们辛辛苦苦写完的`libuv_thread`包终于还是要发布到`npm`上供大家下载使用的，`npm`是Node.js包的管理平台，本书之前已经做过简单的介绍，这里我们将把之前开发好的`libuv_thread`包发布到`npm`上。
+丑媳妇终要见公婆，我们辛辛苦苦写完的`libuv_thread`包终于还是要发布到`npm`上供大家下载使用的，`npm`是Node.js包的管理平台，本书之前已经做过介绍了，这里我们将把开发好的`libuv_thread`包发布到`npm`上。
 
 在把包发布到`npm`上之前，我们需要注册一个`npm`帐号，通过命令`npm adduser`来注册，根据命令行的提示输入好用户名，密码，Email，所在地等相关信息后就可以完成注册了。
 
@@ -1218,7 +1221,7 @@ Node.js天生就是跨平台的，同样`libuv`库，`node-gyp`命令等都是�
     npm http 201 https://registry.npmjs.org/libuv_thread/0.1.0/-tag/latest
     + libuv_thread@0.1.0
 
-上面的打印信息表示我们发布了`libuv_thread`包的`0.1.0`版本，随后我们可以在各个操作系统上执行`npm install libuv_thread`命令进行安装和测试。
+上面的打印信息表示我们成功发布了`libuv_thread`包`0.1.0`版本，随后我们可以在各个操作系统上执行`npm install libuv_thread`命令进行安装和测试。
 
 `libuv_thread`包的github开源项目地址：[https://github.com/DoubleSpout/nodeLibuvThread](https://github.com/DoubleSpout/nodeLibuvThread)。
 
