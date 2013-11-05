@@ -106,9 +106,8 @@ Node.js是单线程的，但是它如何做到I/O的异步和非阻塞的呢？�
     setTimeout(function () {
         console.log(Date.now() - start);
         for (var i = 0; i < 1000000000; i++){
-
         }
-        }, 1000);
+    }, 1000);
     setTimeout(function () {
         console.log(Date.now() - start);
     }, 2000);
@@ -185,6 +184,8 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
     });
     app.listen(8124);
     console.log('listen on 8124');
+
+其中`~~req.query.n`表示将用户传递的参数`n`取整，功能类似`Math.floor`函数。
 
 我们用`express`框架搭建了一个web服务器，根据用户发送的参数`n`的值来创建子线程计算斐波那契数组，当子线程计算完毕之后将结果响应给客户端。由于计算是丢入子线程中运行的，所以整个主线程不会被阻塞，还是能够继续处理新请求的。
 
@@ -659,11 +660,11 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
 
 同样分析一下结果，`Document Length:33064 bytes`表示文档大小为`33064 bytes`，说明我们的gzip起作用了，每秒处理任务数从`ifile`包的`542`下降到了`300`，最长用户等待时间也延长到了`9367 ms`，可见我们的努力起到了立竿见影的作用，js和C++互相调用以及线程的创建和释放并不是没有损耗的。
 
-但是当我在`express`的谷歌论坛里贴上这些测试结果，并宣传`ifile`包的时候，`express`的作者TJ，给我泼了一盆冷水，他在回复中说道：
+但是当我在`express`的谷歌论坛里贴上这些测试结果，并宣传`ifile`包的时候，`express`的作者TJ，给与了不一样的评价，他在回复中说道：
 
 >请牢记你可能不需要这么高等级吞吐率的系统，就算是每月百万级别下载量的npm，也仅仅每秒处理17个请求而已，这样的压力PHP也可以处理（又黑了一把php）
 
-当然TJ一般不轻易回复别人，能够得到他的回复我也很意外。
+确实如TJ所说，性能只是我们项目的指标之一而非全部，一味的去追求高性能并不是很明智。
 
 `ifile`包开源项目地址：[https://github.com/DoubleSpout/ifile](https://github.com/DoubleSpout/ifile)
 
@@ -1058,7 +1059,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
 综上我们的测试用例基本也定型了，一个正常工作的用例和一个肯定会抛出异常的用例。
 
 ###should模块
-由于测试相对简单，我们这次并没有使用任何测试框架，而使用了相对简单的`should`模块，关于热门`mocha`测试框架的介绍，本书后面会有介绍。
+由于测试相对简单，我们这次并没有使用任何测试框架，而使用了相对简单的`should`模块。
 
 `should`模块类似于Node.js核心模块中的`assert`，断言某一种情况是否成立，安装它非常简单`npm install should`，它的简单用法如下：
 
@@ -1224,6 +1225,25 @@ Node.js天生就是跨平台的，同样`libuv`库，`node-gyp`命令等都是�
 上面的打印信息表示我们成功发布了`libuv_thread`包`0.1.0`版本，随后我们可以在各个操作系统上执行`npm install libuv_thread`命令进行安装和测试。
 
 `libuv_thread`包的github开源项目地址：[https://github.com/DoubleSpout/nodeLibuvThread](https://github.com/DoubleSpout/nodeLibuvThread)。
+
+##专业的小图标
+在`github`上我们经常会在`readme.md`文件上看到有`build passing`和`npm module`这两种小图标，前者`build passing`表示此项目通过`travis-ci`网站测试，后者`npm module`表示此项目是已经提交到`npm`上的包。
+
+生成`npm module`图标比较简单，在我们把`libuv_thread`包提交到`npm`上之后，访问网站[http://badge.fury.io](http://badge.fury.io)，在输入框中输入`libuv_thread`并提交之后就可以找到用于`MarkDown`的图标链接字符串，把它们拷贝到`readme.md`头部就可以了。
+
+`build passing`图标比较复杂一些，我们需要先访问[https://travis-ci.org/](https://travis-ci.org/)，将`github`帐号关联到`travis-ci`，然后根据提示到`github`上开放授权，在项目的根目录里创建`.travis.yml`文件，告诉`travis-ci`此项目是Node.js项目以及依赖的版本号。
+
+一个`.travis.yml`文件的例子：
+
+     language: node_js
+     node_js:
+       - "0.10"
+
+我们可以在`travis-ci`官网上找到相应项目的小图标生成字符串，把它复制到`readme.md`文件中。设定完毕之后，当每次我们对`github`提交代码，都会触发`travis-ci`的测试，如果测试通过就可以在`github`上看到一个绿色`build passing`，如果测试失败会生成红色的`build error`，如果生成失败则是灰色的`build fail`。
+
+最后我们的`libuv_thread`包有了专业的小图标：
+
+![libuv_thread 包](http://farm8.staticflickr.com/7316/10682759766_c83aeef40a_o.png)
 
 ##总结
 在开发Node.js项目时，我们一定要学会使用各种各样的包来为我们服务，这样可以大大的提升开发效率。`package.json`不仅是作为包的说明配置文件，同样我们每一个Node.js项目根目录都应该包含它作为项目的配置说明文件。
