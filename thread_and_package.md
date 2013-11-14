@@ -164,20 +164,20 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
 一个利用`tagg2`计算斐波那契数组的http服务器代码：
 
     var express = require('express');
-    var tagg2 = require("tagg2")
+    var tagg2 = require("tagg2");
     var app = express();
     var th_func = function(){//线程执行函数，以下内容会在线程中执行
-        var fibo =function fibo (n) { //在子线程中定义fibo函数
+        var fibo =function fibo (n) {//在子线程中定义fibo函数
                return n > 1 ? fibo(n - 1) + fibo(n - 2) : 1;
             }
-        var n = fibo(~~thread.buffer); //执行fibo递归
+        var n = fibo(~~thread.buffer);//执行fibo递归
         thread.end(n);//当线程执行完毕，执行thread.end带上计算结果回调主线程
-    }
+    };
     app.get('/', function(req, res){
-      var n = ~~req.query.n || 1;
-      var buf = new Buffer(n.toString());
-      tagg2.create(th_func, {buffer:buf}, function(err,result){
-      //创建一个js线程,传入工作函数,buffer参数以及回调函数
+        var n = ~~req.query.n || 1;
+        var buf = new Buffer(n.toString());
+        tagg2.create(th_func, {buffer:buf}, function(err,result){
+        //创建一个js线程,传入工作函数,buffer参数以及回调函数
             if(err) return res.end(err);//如果线程创建失败
             res.end(result.toString());//响应线程执行计算的结果
         })
@@ -240,7 +240,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
 
 另外我们看下最后带有百分比的列表，可以看到50%的用户是在`5531 ms`以内返回的，最慢的也不过`5602 ms`，响应延迟非常的平均。
 
-我们如果用`cluster`来启动4个进程，是否可以充分利用cpu达到`tagg2`那样的`QPS`呢？我们在同样的网络环境和测试机上运行如下代码：
+我们如果用`cluster`来启动4个进程，是否可以充分利用cpu达到`tagg2`那样的`QPS`（Query Per Second ，每秒查询率）呢？我们在同样的网络环境和测试机上运行如下代码：
 
     var cluster = require('cluster');
     var numCPUs = require('os').cpus().length;
@@ -332,7 +332,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
 在支持html5的浏览器里，我们可以使用`webworker`来将一些耗时的计算丢入worker进程中执行，这样主进程就不会阻塞，用户也就不会有卡顿的感觉了。在Node.js中是否也可以使用这类技术，保证主线程的通畅呢？
 
 ###cluster
-`cluster`可以用来让Node.js充分利用多核cpu的性能，同时也可以让Node.js程序更加健壮，官网上的`cluster`示例已经告诉我们如何重新启动一个因为异常而奔溃的子进程。详细的`cluster`模块使用教程会在本书的`部署Node.js`一章作详细介绍。
+`cluster`可以用来让Node.js充分利用多核cpu的性能，同时也可以让Node.js程序更加健壮，官网上的`cluster`示例已经告诉我们如何重新启动一个因为异常而奔溃的子进程。
 
 ###webworker
 想要像在浏览器端那样启动worker进程，我们需要利用Node.js核心api里的`child_process`模块。`child_process`模块提供了`fork`的方法，可以启动一个Node.js文件，将它作为worker进程，当worker进程工作完毕，把结果通过`send`方法传递给主进程，然后自动退出，这样我们就利用了多进程来解决主线程阻塞的问题。
@@ -372,7 +372,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
               }
     });
     process.on('SIGHUP', function() {
-            process.exit();//收到kill信息，自杀进程
+            process.exit();//收到kill信息，进程退出
     });
 
 我们先定义函数`fibo`用来计算斐波那契数组，然后监听了主线程发来的消息，计算完毕之后将结果`send`到主线程。同时还监听`process`的`SIGHUP`事件，触发此事件就自杀进程。
@@ -746,6 +746,24 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
 
 在我们准备把包发布到`npm`上之前，还有一个非常重要的文件没有创建————`.npmignore`。这个文件描述了我们过滤掉那些文件不发布到`npm`上去，一般必须过滤掉的目录就是`node_modules`。这个目录因为可能涉及到C++模块的编译，必须每次`npm install`重新创建，所以不必提交到`npm`上。同样不必提交到`npm`上的还有我们之后要介绍的`build`文件夹。
 
+一般一个Node.js的包的根目录结构如下：
+
+    - .gitignore —— 从 Git 库中忽略的文件清单
+    - .npmignore —— 不包括在 npm 注册库中的文件清单
+    - LICENSE —— 包的授权文件
+    - README.md —— 以 Markdown 格式编写的 README 文件
+    - bin —— 保存包可执行文件的文件夹
+    - doc —— 保存包文档的文件夹
+    - examples —— 保存如何使用包的实际示例的文件夹
+    - lib —— 保存包代码的文件夹
+    - man —— 保存包的手册页的文件夹
+    - package.json —— 描述包的 JSON 文件
+    - src —— 保存c/c++源文件的文件夹
+    - deps —— 保存包所用到的依赖文件夹
+    - test —— 保存模块测试的文件夹
+    - benchmark —— 保存性能测试代码的文件夹
+    - index.js —— 包的入口文件
+
 ##纯js包开发
 我们现在正式开始开发一个Node.js包，利用`libuv`库编写一个Node.js多线程支持的包，类似`tagg2`，这个包会包括js部分和C++部分，它们两部分提供不同功能，js主要提供对外的`api`和一些初始化工作，C++则主要负责多线程的支持。
 
@@ -819,19 +837,19 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
 
 在各个平台你需要保证先安装了如下的软件：
 
-  * Unix:
+  * Unix：
     * `python` （版本必须为`v2.7`, `v3.x.x` 是*不*支持的）
     * `make` （make命令）
     * 正确的 C/C++ 编译工具, 例如：GCC
-  * Windows:
+  * Windows：
     * [Python][windows-python] （版本必须为[`v2.7.3`][windows-python-v2.7.3], `v3.x.x` 是*不*支持的)
     * Windows XP/Vista/7:
       * Microsoft Visual Studio C++ 2010 （[Express][msvc2010] 也可以使用）
       * 如果是在64位系统上构建插件，你需要 [Windows 7 64-bit SDK][win7sdk]
-        * 如果安装失败，尝试将你的C++ 2010 x64&x86卸载，重新安装sdk后再安装它。
-      * 如果出现64-bit编译器没有安装的错误，你可以将[编译器升级到新版本，用于兼容Windows SDK 7.1]。
-    * Windows 7/8:
-      * Microsoft Visual Studio C++ 2012 for Windows （[Express][msvc2012] 也可以使用）
+        * 如果安装失败，尝试将你的C++ 2010 x64&x86卸载，重新安装sdk后再安装它
+      * 如果出现64-bit编译器没有安装的错误，你可以将[编译器升级到新版本，用于兼容Windows SDK 7.1]
+    * Windows 8：
+      * Microsoft Visual Studio C++ 2012 for Windows（[Express][msvc2012] 也可以使用）
 
 正确安装`node-gyp`命令之后，我们就可以在命令行看到如下打印结果了：
 
@@ -1059,7 +1077,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
 综上所述，我们的测试用例也基本确定了，一个正常工作的用例和一个肯定会抛出异常的用例。
 
 ###should模块
-由于测试相对简单，我们这次并没有使用任何测试框架，而使用了相对简单的`should`模块。
+由于测试相对简单，我们这次并没有使用（强大/复杂）的`mocha`模块，而使用了相对简单的`should`模块。	
 
 `should`模块类似于Node.js核心模块中的`assert`，断言某一种情况是否成立，安装它非常简单`npm install should`，它的简单用法如下：
 
@@ -1197,13 +1215,13 @@ Node.js天生就是跨平台的，同样`libuv`库，`node-gyp`命令等都是�
 
 在进行Node.js跨平台开发过程中，文件的目录路径是最容易出现不兼容的地方，`linux`系统下是没有类似`windows`下`c盘`，`d盘`等概念的，根目录以`/`开头，同样目录分隔符号`linux`和`windows`的斜杠也是不同的。第二个容易造成不兼容的地方是依赖的操作系统命令，比如`ls`,`ln -s`,`mkdir`等等都是在`linux`下的命令，在`windows`中是不可以使用的。第三个容易造成不兼容的地方就是在编写C++插件时编译器的不同，`linux`下的`gcc`和`windows`下的`Visual C++`是有一定区别的。
 
-##readme.md制作
+##readme.md
 在发布到`npm`之前，我们需要让开发者知道我们发布上去的包是做什么用的，对开发者提供的api说明和简单的运行示例，所以在包的根目录`readme.md`说明文件必不可少。
 
 ##发布到github
 `github`作为开源代码的仓库，已经被越来越多的开发者所青睐，通过将自己的代码开源在`github`上，可以让更多的人参与进来，开发新的功能或者反馈问题提交debug代码。而且将自己的开源项目放在`github`上也会有更多的机会被其他开发者搜索和使用，毕竟自己辛勤的劳动成果能够被别人所认可，也是一件很欣慰的事情。
 
-我们可以方便的使用`github`官方开发的桌面程序，在不同机器上随时随地的`clone`和`commit`代码。
+我们可以方便的使用`github`官方开发的桌面程序来管理代码,例如`GitHub for Windows`或者`GitHub Mac`，在不同机器上随时随地的`clone`和`commit`代码。
 
 ##发布到npm
 丑媳妇终要见公婆，我们辛辛苦苦写完的`libuv_thread`包终于还是要发布到`npm`上供大家下载使用的，`npm`是Node.js包的管理平台，本书之前已经做过介绍了，这里我们将把开发好的`libuv_thread`包发布到`npm`上。
@@ -1226,7 +1244,7 @@ Node.js天生就是跨平台的，同样`libuv`库，`node-gyp`命令等都是�
 
 `libuv_thread`包的github开源项目地址：[https://github.com/DoubleSpout/nodeLibuvThread](https://github.com/DoubleSpout/nodeLibuvThread)。
 
-##专业的小图标
+##状态图标
 在`github`上我们经常会在`readme.md`文件上看到有`build passing`和`npm module`这两种小图标，前者`build passing`表示此项目通过`travis-ci`网站测试，后者`npm module`表示此项目是已经提交到`npm`上的包。
 
 生成`npm module`图标比较简单，在我们把`libuv_thread`包提交到`npm`上之后，访问网站[http://badge.fury.io](http://badge.fury.io)，在输入框中输入`libuv_thread`并提交之后就可以找到用于`MarkDown`的图标链接字符串，把它们拷贝到`readme.md`头部即可。
