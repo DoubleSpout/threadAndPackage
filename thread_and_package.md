@@ -713,8 +713,27 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
       "license": "BSD-2-Clause"
     }
 
+一般 package.json 文件常用的有以下字段：
+
+    - name —— 包的名称，必须是唯一的，由小写英文字母、数字和下划线组成，不能包含空格
+    - description —— 包的简要说明
+    - version —— 包的版本
+    - author —— 包的作者
+    - contributors —— 贡献者数组，数组每一项为一个包含一个贡献者资料的对象
+    - dependencies —— 包的依赖，为一个对象，对象的属性为包名称，属性值为版本号
+    - devDependencies —— 开发环境下的包依赖，为一个对象，对象的属性为包名称，属性值为版本号
+    - keywords —— 关键字数组，通常用于搜索
+    - repository —— 仓库托管地址，通常为一个包含type（仓库的类型，如：git）和 url（仓库的地址）的对象
+    - main —— 包的入口文件，如不指定，则默认为根目录下的index.js或index.node
+    - bin —— 可执行文件的路径
+    - bugs —— 提交bug的地址
+    - maintainers —— 维护者数组，数组每一项为一个包含一个维护者资料的对象
+    - licenses —— 许可证数组，数组每一项为一个包含type（许可证的名称）和url（链接到许可证文本的地址）的对象
+
 ##设计package的文件目录
-对于开发一个Node.js的包，我们首先需要一个入口文件，我们一般取名为`index.js`，而且我们必须在`package.json`文件中注明入口文件名：
+Node.js在调用某个包时，会首先检查包中的`package.json`文件的`main`字段，如果设置了`main`字段，就会根据`main`字段的值（包入口文件的路径）作为该包的接口，如果`package.json`或`main`字段不存在，则Node.js会尝试寻找`index.js`或`index.node`作为包的入口文件。
+
+所以对于开发一个Node.js的包，我们首先需要定义入口文件，我们一般取名为`index.js`，在`package.json`文件中注明入口文件名：
 
     "main": "index.js"
 
@@ -908,7 +927,7 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
       ]
     }
 
-然后我们执行`node-gyp rebuild`命令，编译之前写好的C++插件，将会自动生成`build`文件夹，于是我们利用下面的代码加载刚刚生成的C++插件给Node.js调用，创建hello.js：
+接着执行`node-gyp rebuild`命令，编译之前写好的C++插件，将会自动生成`build`文件夹，于是我们利用下面的代码加载刚刚生成的C++插件给Node.js调用，创建hello.js：
 
     var addon = require('./build/Release/hello');
     console.log(addon.hello()); // 'world'
@@ -1226,7 +1245,10 @@ Node.js天生就是跨平台的，同样`libuv`库，`node-gyp`命令等都是�
 ##发布到npm
 丑媳妇终要见公婆，我们辛辛苦苦写完的`libuv_thread`包终于还是要发布到`npm`上供大家下载使用的，`npm`是Node.js包的管理平台，本书之前已经做过介绍了，这里我们将把开发好的`libuv_thread`包发布到`npm`上。
 
-在把包发布到`npm`上之前，我们需要注册一个`npm`帐号，通过命令`npm adduser`来注册，根据命令行的提示输入好用户名、密码、Email、所在地等相关信息后即可完成注册。
+在把包发布到`npm`上之前，我们需要注册一个`npm`帐号，通过命令`npm adduser`来注册，根据命令行的提示输入好用户名、密码、Email、所在地等相关信息后即可完成注册。注册成功后，我们可以在命令行中运行 `npm whoami` 查看是否取得了账号。
+
+    npm whoami
+    doublespout
 
 随后我们进入`libuv_thread`包的根目录，执行`npm publish`命令，等待一段时间后就可以完成发布。
 
@@ -1240,7 +1262,7 @@ Node.js天生就是跨平台的，同样`libuv`库，`node-gyp`命令等都是�
     npm http 201 https://registry.npmjs.org/libuv_thread/0.1.0/-tag/latest
     + libuv_thread@0.1.0
 
-上面的打印信息表示我们成功发布了`libuv_thread`包`0.1.0`版本，随后我们可以在各个操作系统上执行`npm install libuv_thread`命令进行安装和测试。
+上面的打印信息表示我们成功发布了`libuv_thread`包`0.1.0`版本，随后我们可以在各个操作系统上执行`npm install libuv_thread`命令进行安装和测试。假如你对已发布的包不满意，可以使用 `npm unpublish` 来取消发布。
 
 `libuv_thread`包的github开源项目地址：[https://github.com/DoubleSpout/nodeLibuvThread](https://github.com/DoubleSpout/nodeLibuvThread)。
 
