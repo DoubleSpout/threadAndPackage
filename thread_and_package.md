@@ -1,4 +1,10 @@
 #Node.js的线程和进程
+##前言
+很多Node.js初学者都会有这样的疑惑，Node.js到底是单线程的还是多线程的？通过本章的学习，将能够让读者较为清晰的理解Node.js对于单/多线程的关系和支持情况。同时本章还将列举一些让Node.js的web服务器线程阻塞的例子，最后会提供Node.js碰到这类cpu密集型问题的解决方案。
+
+读者希望顺利阅读本章，需要对Node.js有一个初步的认识，熟悉Node.js基本语法、`cluster`模块、`child_process`模块和`express`框架；接触过`apache`的`http`压力测试工具`ab`；了解一般web服务器对于静态文件的处理流程。
+
+##Node.js和PHP
 早期有很多关于Node.js争论的焦点都在它的单线程模型方面，在由Jani Hartikainen写的一篇著名的文章《PHP优于Node.js的五大理由》中，更有一条矛头直接指向Node.js单线程脆弱的问题。
 
 >如果PHP代码损坏，不会拖垮整个服务器。
@@ -622,9 +628,12 @@ Jorge Chamorro Bieling是`tagg(Threads a gogo for Node.js)`包的作者，他硬
 - <https://github.com/joyent/libuv> libuv by joyent
 
 #发布一个package
-本章将带领大家一步步的开发一个基于`libuv`库让Node.js支持多线程的包，开发并测试完成后，将发布到`npm`上供其他人下载和使用。
+##前言
+合理使用Node.js的包能够解决很多问题，本章将带领大家一步步开发一个基于`libuv`库让Node.js支持多线程的名为`libuv_thread`包，开发并测试完成后，我们将它发布到`npm`上供其他开发人员下载和使用。
 
-##package解决的问题
+读者希望顺利阅读本章，需要有`C++`语法基础；对`libuv`库和`v8`引擎的嵌入式开发有所了解；熟悉Node.js的基本模块用法。
+
+##Node.js包解决的问题
 在我们使用Node.js开发一些项目时，大家都会用到各种各样的Node.js包，比如我们上一章使用的`express`，`tagg2`等，都是一个个发布到`npm`上的包。
 
 随着大家对Node.js不断的深入了解，其实会发现想要解决一些比较普遍的问题都会有对应的Node.js包，比如我们想解决编码问题就可以使用`icon-v`，我们想要一个`mysql`的连接引擎也会有`mysql`包供我们使用。
