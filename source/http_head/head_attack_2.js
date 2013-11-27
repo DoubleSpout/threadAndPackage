@@ -1,5 +1,5 @@
 var net = require('net');
-var maxConn = 1;
+var maxConn = 1000;
 var head_str = 'GET / HTTP/1.1\r\nHost: 192.168.17.55\r\n'
 var clientArray = [];
 while(maxConn--){
