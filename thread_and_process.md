@@ -2,7 +2,7 @@
 ##前言
 很多Node.js初学者都会有这样的疑惑，Node.js到底是单线程的还是多线程的？通过本章的学习，能够让读者较为清晰的理解Node.js对于单/多线程的关系和支持情况。同时本章还将列举一些让Node.js的web服务器线程阻塞的例子，最后会提供Node.js碰到这类cpu密集型问题的解决方案。
 
-读者希望顺利阅读本章，需要对Node.js有一个初步的认识，熟悉Node.js基本语法、`cluster`模块、`child_process`模块和`express`框架；接触过`apache`的`http`压力测试工具`ab`；了解一般web服务器对于静态文件的处理流程。
+在学习本章之前，读者需要对Node.js有一个初步的认识，熟悉Node.js基本语法、`cluster`模块、`child_process`模块和`express`框架；接触过`apache`的`http`压力测试工具`ab`；了解一般web服务器对于静态文件的处理流程。
 
 ##Node.js和PHP
 早期有很多关于Node.js争论的焦点都在它的单线程模型方面，在由Jani Hartikainen写的一篇著名的文章《PHP优于Node.js的五大理由》中，更有一条矛头直接指向Node.js单线程脆弱的问题。
