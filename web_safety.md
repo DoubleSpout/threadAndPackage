@@ -226,7 +226,7 @@ Node.js作为一门新型的开发语言，很多开发者都会用它来快速�
 
     <a href="data:text/html;base64, PGltZyBzcmM9eCBvbmVycm9yPWFsZXJ0KDEpPg==">base64 xss</a>
 
-用户在点击这个超链接之后，就会执行如上的恶意`alert`弹窗了，我们更可以将一些恶意的代码进行注入了，就算网站开发者过滤了单双引号`",'`和左右尖括号`<>`，注入还是能够生效的。
+用户在点击这个超链接之后，就会执行如上的恶意`alert`弹窗了，我们更可以将一些恶意的代码进行注入，就算网站开发者过滤了单双引号`",'`和左右尖括号`<>`，注入还是能够生效的。
 
 ###常用注入方式
 注入的根本目的就是要`HTML`标签溢出，从而执行攻击者的恶意代码，下面是一些常用攻击手段：
@@ -246,6 +246,8 @@ Node.js作为一门新型的开发语言，很多开发者都会用它来快速�
 （7）`<STYLE>@im\port'\ja\vasc\ript:alert("XSS")';</STYLE>`,如果可以自定义style样式，也可能被注入。
 
 （8）`<IFRAME SRC="javascript:alert('XSS');"></IFRAME>`，iframe的标签也可能被注入。
+
+（9）`<a href="javasc&NewLine;ript&colon;alert(1)">click</a>`，利用`&NewLine;`伪装换行，`&colon;`伪装冒号，从而避开对Javascript关键字以及冒号的过滤。
 
 其实`XSS`注入过程充满智慧，只要你反复尝试各种技巧，就可能在网站的某处攻击成功。总之，发挥你的想象力去注入吧，最后别忘了提醒下站长哦。更多`XSS`注入方式参阅：(XSS Filter Evasion Cheat Sheet)[https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet]
 
