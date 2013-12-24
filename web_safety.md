@@ -202,7 +202,32 @@ Node.js作为一门新型的开发语言，很多开发者都会用它来快速�
     $('div:first').html('<div>\u003c\u0073\u0063\u0072\u0069\u0070\u0074\u003e\u0061\u006c\u0065\u0072\u0074\u0028\u0022\u0078\u0073\u0073\u0022\u0029\u003c\u002f\u0073\u0063\u0072\u0069\u0070\u0074\u003e</div>');
 
 大家发现还是输出了`alert`框，只是这次需要将写好的恶意代码放入转码工具中做下转义，webqq曾经就爆出过上面这种`unicode`码的`XSS`注入漏洞，另外有很多反射型`XSS`漏洞因为过滤了单双引号，所以必须使用这种方式进行注入。
-	
+
+###base64注入
+除了比较老的ie6、7浏览器，一般浏览器在加载一些图片资源的时候我们可以使用base64编码显示出这张图片，比如下面这段base64编码。
+
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEU (... 省略若干字符) AAAASUVORK5CYII=" />
+
+上面这段base64编码表示的就是如下的一张Node.js官网的logo图片。
+
+![base64 logo](http://farm6.staticflickr.com/5489/11527503664_de5d473200_o.png)
+
+我们一般使用这样的技术把一些网站常用的logo或者小图标转存成为base64编码，进而减少一次客户端向服务器的请求，加快用户加载速度。
+
+我们还可以把HTML页面的代码隐藏在data属性之中，比如下面的代码将打开一个hello world的新页面。
+
+    <a href="data:text/html;ascii,<html><title>hello</title><body>hello world</body></html>">click me</a>
+
+根据这样的特性，我们就可以尝试把一些恶意的代码转存成为base64编码格式，然后注入到`a`标签里去，从而形成反射性XSS漏洞，我们编码如下代码。
+
+    <img src=x onerror=alert(1)>
+
+经过base64编码之后的恶意代码如下。
+
+    <a href="data:text/html;base64, PGltZyBzcmM9eCBvbmVycm9yPWFsZXJ0KDEpPg==">base64 xss</a>
+
+用户在点击这个超链接之后，就会执行如上的恶意`alert`弹窗了，我们更可以将一些恶意的代码进行注入了，就算网站开发者过滤了单双引号`",'`和左右尖括号`<>`，注入还是能够生效的。
+
 ###常用注入方式
 注入的根本目的就是要`HTML`标签溢出，从而执行攻击者的恶意代码，下面是一些常用攻击手段：
 
@@ -1005,3 +1030,4 @@ web安全是我们必须关注且无法逃避的话题，本章介绍了各种�
 - <http://blog.nodejs.org/2013/10/22/cve-2013-4450-http-server-pipeline-flood-dos/> DoS Vulnerability
 - <https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet> XSS Filter Evasion Cheat Sheet
 - <http://msdn.microsoft.com/zh-cn/magazine/ff646973.aspx> 正则表达式拒绝服务攻击和防御
+- <http://drops.wooyun.org/tips/689> XSS与字符编码的那些事儿
