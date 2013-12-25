@@ -204,15 +204,15 @@ Node.js作为一门新型的开发语言，很多开发者都会用它来快速�
 大家发现还是输出了`alert`框，只是这次需要将写好的恶意代码放入转码工具中做下转义，webqq曾经就爆出过上面这种`unicode`码的`XSS`注入漏洞，另外有很多反射型`XSS`漏洞因为过滤了单双引号，所以必须使用这种方式进行注入。
 
 ###base64注入
-除了比较老的ie6、7浏览器，一般浏览器在加载一些图片资源的时候我们可以使用base64编码显示出这张图片，比如下面这段base64编码。
+除了比较老的ie6、7浏览器，一般浏览器在加载一些图片资源的时候我们可以使用base64编码显示指定图片，比如下面这段base64编码：
 
     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEU (... 省略若干字符) AAAASUVORK5CYII=" />
 
-上面这段base64编码表示的就是如下的一张Node.js官网的logo图片。
+表示的就是一张Node.js官网的logo，图片如下：
 
 ![base64 logo](http://farm6.staticflickr.com/5489/11527503664_de5d473200_o.png)
 
-我们一般使用这样的技术把一些网站常用的logo或者小图标转存成为base64编码，进而减少一次客户端向服务器的请求，加快用户加载速度。
+我们一般使用这样的技术把一些网站常用的logo或者小图标转存成为base64编码，进而减少一次客户端向服务器的请求，加快用户加载页面速度。
 
 我们还可以把HTML页面的代码隐藏在data属性之中，比如下面的代码将打开一个hello world的新页面。
 
@@ -227,6 +227,22 @@ Node.js作为一门新型的开发语言，很多开发者都会用它来快速�
     <a href="data:text/html;base64, PGltZyBzcmM9eCBvbmVycm9yPWFsZXJ0KDEpPg==">base64 xss</a>
 
 用户在点击这个超链接之后，就会执行如上的恶意`alert`弹窗了，我们更可以将一些恶意的代码进行注入，就算网站开发者过滤了单双引号`",'`和左右尖括号`<>`，注入还是能够生效的。
+
+不过这样的注入因为跨域的问题，恶意脚本是无法获取网站的`cookie`值。另外如果网站提供我们自定义`flash`路径，也是可以使用相同的方式进行注入的，下面是一段规范的在网页中插入`flash`的代码：
+
+    <object type="application/x-shockwave-flash" data="movie.swf" width="400" height="300">
+    <param name="movie" value="movie.swf" />
+    </object>
+
+把data属性改写成如下恶意内容，也能够通过base64编码进行注入攻击：
+
+    <script>alert("Hello");</script>
+
+经过编码过后的注入内容：
+
+    <object data="data:text/html;base64, PHNjcmlwdD5hbGVydCgiSGVsbG8iKTs8L3NjcmlwdD4="></object>
+
+用户在打开页面后，会弹出alert框，但是在chrome浏览器中是无法获取到cookie的值，因为chrome会认为这个操作不安全而禁止它，看来我们的浏览器为用户安全也做了不少的考虑。
 
 ###常用注入方式
 注入的根本目的就是要`HTML`标签溢出，从而执行攻击者的恶意代码，下面是一些常用攻击手段：
