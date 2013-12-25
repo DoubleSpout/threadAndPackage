@@ -218,7 +218,7 @@ Node.js作为一门新型的开发语言，很多开发者都会用它来快速�
 
     <a href="data:text/html;ascii,<html><title>hello</title><body>hello world</body></html>">click me</a>
 
-根据这样的特性，我们就可以尝试把一些恶意的代码转存成为base64编码格式，然后注入到`a`标签里去，从而形成反射性XSS漏洞，我们编码如下代码。
+根据这样的特性，我们就可以尝试把一些恶意的代码转存成为base64编码格式，然后注入到`a`标签里去，从而形成反射型XSS漏洞，我们编码如下代码。
 
     <img src=x onerror=alert(1)>
 
@@ -226,7 +226,7 @@ Node.js作为一门新型的开发语言，很多开发者都会用它来快速�
 
     <a href="data:text/html;base64, PGltZyBzcmM9eCBvbmVycm9yPWFsZXJ0KDEpPg==">base64 xss</a>
 
-用户在点击这个超链接之后，就会执行如上的恶意`alert`弹窗了，我们更可以将一些恶意的代码进行注入，就算网站开发者过滤了单双引号`",'`和左右尖括号`<>`，注入还是能够生效的。
+用户在点击这个超链接之后，就会执行如上的恶意`alert`弹窗，就算网站开发者过滤了单双引号`",'`和左右尖括号`<>`，注入还是能够生效的。
 
 不过这样的注入因为跨域的问题，恶意脚本是无法获取网站的`cookie`值。另外如果网站提供我们自定义`flash`路径，也是可以使用相同的方式进行注入的，下面是一段规范的在网页中插入`flash`的代码：
 
@@ -242,7 +242,7 @@ Node.js作为一门新型的开发语言，很多开发者都会用它来快速�
 
     <object data="data:text/html;base64, PHNjcmlwdD5hbGVydCgiSGVsbG8iKTs8L3NjcmlwdD4="></object>
 
-用户在打开页面后，会弹出alert框，但是在chrome浏览器中是无法获取到cookie的值，因为chrome会认为这个操作不安全而禁止它，看来我们的浏览器为用户安全也做了不少的考虑。
+用户在打开页面后，会弹出alert框，但是在chrome浏览器中是无法获取到用户cookie的值，因为chrome会认为这个操作不安全而禁止它，看来我们的浏览器为用户安全也做了不少的考虑。
 
 ###常用注入方式
 注入的根本目的就是要`HTML`标签溢出，从而执行攻击者的恶意代码，下面是一些常用攻击手段：
